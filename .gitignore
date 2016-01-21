@@ -1,0 +1,11 @@
+*.egg
+*.egg-info
+*.mo
+*.py[cod]
+/.coverage
+/.emacs.desktop.lock
+/build/
+/dist/
+/emacs.desktop
+/env/
+__pycache__/
