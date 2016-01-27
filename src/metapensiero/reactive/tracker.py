@@ -18,7 +18,6 @@ from .dependency import Dependency
 logger = logging.getLogger(__name__)
 
 
-
 class Tracker(object):
 
     FLUSHER_FACTORY = None
