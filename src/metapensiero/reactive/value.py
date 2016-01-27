@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 undefined = object()
 
+
 class Value(object):
     """A simple reactive value container to demonstrate how all this
     package works.
@@ -32,7 +33,10 @@ class Value(object):
     def value(self):
         if tracker().active:
             self._dep()
-        return self._value
+        if self._value is undefined:
+            raise ValueError('You have to set a value first')
+        else:
+            return self._value
 
     @value.setter
     def value(self, v):
