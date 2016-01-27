@@ -24,7 +24,18 @@ logger = logging.getLogger(__name__)
 @six.add_metaclass(signal.SignalAndHandlerInitMeta)
 class BaseFlushManager(object):
 
+    on_before_flush = signal.Signal()
+    """A signal that will notify just before the flush operation
+    happens. It will execute the callback passing in the list of the
+    pending computations. All the connected callbacks will be
+    disconnected after each notify().
+    """
+
     on_after_flush = signal.Signal()
+    """A signal that is used to notify when the flush operation has been
+    completed. All the connected callbacks will be disconnected after
+    each notify().
+    """
 
     HAS_SUSPEND_CAPABILITY = False
 
@@ -70,6 +81,9 @@ class BaseFlushManager(object):
             self._in_flush = True
             recalcs = set()
             try:
+                if len(pending) > 0:
+                    self.on_before_flush.notify(pending)
+                    self.on_before_flush.clear()
                 while len(pending) > 0:
                     comp = pending.popleft()
                     comp._recompute()
