@@ -32,21 +32,26 @@ setup(
 
     license="GPLv3+",
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         "Programming Language :: Python",
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.4",
-        ],
+        "Programming Language :: Python :: 3.5",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU General Public License (GPL)",
+       ],
     keywords='',
 
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    namespace_packages=['metapensiero', 'metapensiero.reactive'],
+    namespace_packages=['metapensiero'],
 
-    install_requires=['setuptools'],
+    install_requires=['setuptools',
+                      'metapensiero.signal>=0.3',
+                      'six'],
     extras_require={'dev': ['metapensiero.tool.bump_version', 'docutils']},
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'pytest-asyncio'],
+    tests_require=['pytest'],
 )
