@@ -12,8 +12,6 @@ import six
 import logging
 import operator
 
-from metapensiero import signal
-
 from . import tracker
 
 logger = logging.getLogger(__name__)
@@ -21,18 +19,29 @@ logger = logging.getLogger(__name__)
 undefined = object()
 
 class Value(object):
+    """A simple reactive value container to demonstrate how all this
+    package works.
+    """
 
     def __init__(self, initial_value=undefined, equal=None):
         self._equal = equal or operator.eq
         self._value = initial_value
         self._dep = tracker().dependency()
 
+    @property
     def value(self):
         if tracker().active:
             self._dep()
         return self._value
 
+    @value.setter
     def value(self, v):
         if not self._equal(self._value, v):
             self._value = v
             self._dep.changed()
+
+    def __call__(self, v=undefined):
+        if v is not undefined:
+            self.value = v
+        else:
+            return self.value
