@@ -14,10 +14,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULTS = dict(flusher_factory=None, tracker_instance=None)
 
-
-class ReactiveError(Exception):
-    pass
-
 def default_flusher_factory():
     """Get the registered flusher factory or default to
     BaseFlushManager.
