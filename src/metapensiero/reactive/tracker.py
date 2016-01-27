@@ -82,5 +82,5 @@ class Tracker(object):
     def flush(self):
         self.flusher.require_flush(immediate=True)
 
-    def dependncy(self):
+    def dependency(self):
         return Dependency(self)
