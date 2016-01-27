@@ -12,7 +12,7 @@ import six
 import logging
 import operator
 
-from . import tracker
+from . import get_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +27,12 @@ class Value(object):
     def __init__(self, initial_value=undefined, equal=None):
         self._equal = equal or operator.eq
         self._value = initial_value
-        self._dep = tracker().dependency()
+        self._tracker = t = get_tracker()
+        self._dep = t.dependency()
 
     @property
     def value(self):
-        if tracker().active:
+        if self._tracker.active:
             self._dep()
         if self._value is undefined:
             raise ValueError('You have to set a value first')

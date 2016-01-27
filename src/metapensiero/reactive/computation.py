@@ -82,7 +82,7 @@ class Computation(object):
     def invalidate(self):
         """Invalidate the current state of this computation"""
         if not self.invalidated:
-            if not (self._recomputing or self._stopped):
+            if not (self._recomputing or self.stopped):
                 flusher = self._tracker.flusher
                 flusher.add_computation(self)
                 self.on_invalidate.notify()
@@ -98,7 +98,7 @@ class Computation(object):
         with self._tracker.while_compute(self):
             self._func(self)
 
-    def _recomputing(self):
+    def _recompute(self):
         if self._needs_recompute:
             try:
                 self._recomputing = True
@@ -114,7 +114,7 @@ class Computation(object):
 
     def stop(self):
         if not self.stopped:
-            self.stop = True
+            self.stopped = True
             self.invalidate()
             self._tracker._computations.remove(self)
 

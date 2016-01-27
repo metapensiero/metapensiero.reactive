@@ -21,7 +21,7 @@ class Dependency(object):
         self._dependents = set()
 
     def __call__(self, computation=None):
-        if not (self.computation or self._tracker.active):
+        if not (computation or self._tracker.active):
             result = False
         else:
             computation = computation or self._tracker.current_computation
@@ -37,7 +37,9 @@ class Dependency(object):
         self._dependents.remove(computation)
 
     def changed(self):
-        for comp in self._dependents:
+        deps = self._dependents
+        while len(deps) > 0:
+            comp = deps.pop()
             comp.invalidate()
         self._tracker.flusher.require_flush()
 
