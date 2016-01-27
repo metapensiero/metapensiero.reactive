@@ -21,7 +21,6 @@ def get_flusher_factory():
     global DEFAULTS
     ff = DEFAULTS.get('flusher_factory')
     if ff is None:
-        from .flush import BaseFlushManager
         DEFAULTS['flusher_factory'] = ff =  BaseFlushManager
     return ff
 
@@ -38,11 +37,15 @@ def get_tracker():
     if ti is not None and callable(ti):
         ti = ti()
     elif ti is None:
-        from .tracker import Tracker
-        ff = default_flusher_factory()
+        ff = get_flusher_factory()
         ti = Tracker(flusher_factory=ff)
         DEFAULTS['tracker_instance'] = ti
     return ti
 
 def set_tracker(tracker_or_factory):
     DEFAULTS['tracker_instance'] = tracker_or_factory
+
+
+from .tracker import Tracker
+from .value import Value
+from .flush import BaseFlushManager
