@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncioFlushManager(BaseFlushManager):
+    """A Flush manager that uses asyncio to schedule the flush operations"""
 
     HAS_SUSPEND_CAPABILITY = True
 

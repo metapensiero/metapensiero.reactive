@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class GeventFlushManager(BaseFlushManager):
+    """A Flush manager that uses gevent to schedule the flush operations"""
 
     HAS_SUSPEND_CAPABILITY = True
 
