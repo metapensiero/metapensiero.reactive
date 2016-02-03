@@ -40,8 +40,7 @@ class Dependency(object):
 
     def changed(self):
         deps = self._dependents
-        while len(deps) > 0:
-            comp = deps.pop()
+        for comp in list(deps):
             comp.invalidate()
         self._tracker.flusher.require_flush()
 
