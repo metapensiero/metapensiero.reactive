@@ -49,3 +49,4 @@ def set_tracker(tracker_or_factory):
 from .tracker import Tracker
 from .value import Value
 from .flush import BaseFlushManager
+from .nlist import reactivenamedlist as namedlist

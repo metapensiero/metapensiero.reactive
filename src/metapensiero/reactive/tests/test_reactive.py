@@ -88,3 +88,26 @@ def test_value():
     assert results == dict(autorun=[1])
     v(2)
     assert results == dict(autorun=[1,2])
+
+
+def test_reactivenamedlist():
+
+    t = reactive.get_tracker()
+    Point = reactive.namedlist('Point', 'x y', default=0)
+    p = Point(10, 15)
+    results = []
+
+    def autorun(comp):
+        results.append((p.x, p.y))
+
+    assert results == []
+    comp = t.reactive(autorun)
+    assert len(p._deps) == 2
+    assert results == [(10, 15)]
+    p.x = 20
+    assert results == [(10, 15), (20, 15)]
+    p.x = 20
+    p.y = 15
+    assert results == [(10, 15), (20, 15)]
+    p.y = 25
+    assert results == [(10, 15), (20, 15), (20, 25)]
