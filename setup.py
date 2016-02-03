@@ -49,7 +49,7 @@ setup(
     namespace_packages=['metapensiero'],
 
     install_requires=['setuptools',
-                      'metapensiero.signal>=0.6',
+                      'metapensiero.signal>=0.7',
                       'six',
                       'namedlist'],
     extras_require={'dev': ['metapensiero.tool.bump_version', 'docutils']},
