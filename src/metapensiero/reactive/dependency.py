@@ -33,6 +33,8 @@ class Dependency(object):
                 result = False
         return result
 
+    depend = __call__
+
     def _on_computation_invalidate(self, computation):
         self._dependents.remove(computation)
 
