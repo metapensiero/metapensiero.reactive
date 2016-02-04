@@ -124,9 +124,11 @@ class Computation(object):
 
     def stop(self):
         if not self.stopped:
+            self.stopped = True
             self.invalidate()
             self._tracker._computations.remove(self)
-            self.stopped = True
+            self._func = None
+            self._tracker = None
 
     def _on_parent_invalidated(self, parent):
         self.stop()
