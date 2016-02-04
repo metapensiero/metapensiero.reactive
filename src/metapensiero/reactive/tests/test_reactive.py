@@ -156,3 +156,222 @@ def test_reactive_property():
     r.text = 'Just bar in here'
     assert results == dict(ext_autorun=[True, False],
                            int_autorun=[True, True, False])
+
+def test_value_with_nested_autorun():
+
+    import math
+
+    def is_prime(n):
+        "A simple prime number checker"
+        if n % 2 == 0 and n > 2:
+            return False
+        return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
+
+    t = reactive.get_tracker()
+
+    results = dict(autorun=[], autorun2=[])
+
+    def autorun():
+        res = v()
+        results['autorun'].append(v())
+        return is_prime(res)
+
+    def autorun2(comp):
+        results['autorun2'].append(is_v_prime())
+
+    assert results == dict(autorun=[], autorun2=[])
+    v = reactive.Value(1)
+    is_v_prime = reactive.Value(autorun)
+    assert v() == 1
+    assert results == dict(autorun=[], autorun2=[])
+    is_v_prime()
+    assert results == dict(autorun=[1], autorun2=[])
+    comp = t.reactive(autorun2)
+    assert results == dict(autorun=[1, 1], autorun2=[True])
+    assert is_v_prime.value == True
+    v(2)
+    assert results == dict(autorun=[1, 1, 2], autorun2=[True])
+    assert is_v_prime.value == True
+    v(2)
+    assert results == dict(autorun=[1, 1, 2], autorun2=[True])
+    assert is_v_prime.value == True
+    v(4)
+    assert results == dict(autorun=[1, 1, 2, 4], autorun2=[True, False])
+    assert is_v_prime.value == False
+    assert len(v._dep._dependents) == 1
+    assert len(is_v_prime._dep._dependents) == 1
+
+def test_value_with_nested_autorun_stop_non_directly_dependent():
+
+    import math
+
+    def is_prime(n):
+        "A simple prime number checker"
+        if n % 2 == 0 and n > 2:
+            return False
+        return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
+
+    t = reactive.get_tracker()
+
+    results = dict(autorun=[], autorun2=[])
+
+    def autorun():
+        res = v()
+        results['autorun'].append(v())
+        return is_prime(res)
+
+    def autorun2(comp):
+        results['autorun2'].append(is_v_prime())
+
+    assert results == dict(autorun=[], autorun2=[])
+    v = reactive.Value(1)
+    is_v_prime = reactive.Value(autorun)
+    assert v() == 1
+    assert results == dict(autorun=[], autorun2=[])
+    is_v_prime()
+    assert results == dict(autorun=[1], autorun2=[])
+    comp = t.reactive(autorun2)
+    assert results == dict(autorun=[1, 1], autorun2=[True])
+    assert is_v_prime.value == True
+
+
+    assert len(v._dep._dependents) == 1
+    assert len(is_v_prime._dep._dependents) == 1
+
+    comp.stop()
+
+    assert len(v._dep._dependents) == 1
+    assert len(is_v_prime._dep._dependents) == 0
+
+    v(4)
+
+    assert results == dict(autorun=[1, 1], autorun2=[True])
+    assert is_v_prime.value == True
+
+def test_value_with_nested_autorun_stop_dependent():
+
+    import math
+
+    def is_prime(n):
+        "A simple prime number checker"
+        if n % 2 == 0 and n > 2:
+            return False
+        return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
+
+    t = reactive.get_tracker()
+
+    results = dict(autorun=[], autorun2=[])
+
+    def autorun():
+        res = v()
+        results['autorun'].append(v())
+        return is_prime(res)
+
+    def autorun2(comp):
+        results['autorun2'].append(is_v_prime())
+
+    assert results == dict(autorun=[], autorun2=[])
+    v = reactive.Value(1)
+    is_v_prime = reactive.Value(autorun)
+    assert v() == 1
+    assert results == dict(autorun=[], autorun2=[])
+    comp = t.reactive(autorun2)
+    assert results == dict(autorun=[1], autorun2=[True])
+    assert is_v_prime.value == True
+
+    assert len(v._dep._dependents) == 1
+    assert len(is_v_prime._dep._dependents) == 1
+
+    comp.stop()
+
+    assert len(v._dep._dependents) == 1
+    assert len(is_v_prime._dep._dependents) == 0
+
+    v(4)
+
+    assert results == dict(autorun=[1], autorun2=[True])
+    assert is_v_prime.value == True
+
+def test_value_with_nested_autorun_stop_two_dependents():
+
+    import math
+
+    def is_prime(n):
+        "A simple prime number checker"
+        if n % 2 == 0 and n > 2:
+            return False
+        return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
+
+    t = reactive.get_tracker()
+
+    results = dict(autorun=[], autorun2=[], autorun3=[])
+
+    def autorun():
+        res = v()
+        results['autorun'].append(v())
+        return is_prime(res)
+
+    def autorun2(comp):
+        results['autorun2'].append(is_v_prime())
+
+    def autorun3(comp):
+        results['autorun3'].append(is_v_prime())
+
+
+    assert results == dict(autorun=[], autorun2=[], autorun3=[])
+    v = reactive.Value(1)
+    is_v_prime = reactive.Value(autorun)
+    assert v() == 1
+    assert results == dict(autorun=[], autorun2=[], autorun3=[])
+    comp = t.reactive(autorun2)
+    assert results == dict(autorun=[1], autorun2=[True], autorun3=[])
+    comp2 = t.reactive(autorun3)
+    assert results == dict(autorun=[1], autorun2=[True], autorun3=[True])
+    assert is_v_prime.value == True
+
+    assert len(v._dep._dependents) == 1
+    assert len(is_v_prime._dep._dependents) == 2
+
+    comp.stop()
+
+    assert len(v._dep._dependents) == 1
+    assert len(is_v_prime._dep._dependents) == 1
+
+    v(4)
+
+    assert results == dict(autorun=[1, 4], autorun2=[True], autorun3=[True, False])
+    assert is_v_prime.value == False
+
+    comp2.stop()
+
+    assert len(v._dep._dependents) == 1
+    assert len(is_v_prime._dep._dependents) == 0
+
+    v(5)
+
+    assert results == dict(autorun=[1, 4], autorun2=[True], autorun3=[True, False])
+    assert is_v_prime._comp.invalidated is True
+
+    comp2 = t.reactive(autorun3)
+    assert results == dict(autorun=[1, 4, 5], autorun2=[True], autorun3=[True, False, True])
+    assert is_v_prime._comp.invalidated is False
+
+    v(7)
+
+    assert results == dict(autorun=[1, 4, 5, 7], autorun2=[True], autorun3=[True, False, True])
+    assert is_v_prime._comp.invalidated is False
+
+    v(8)
+
+    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
+    assert is_v_prime._comp.invalidated is False
+
+    comp2.stop()
+
+    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
+    assert is_v_prime._comp.invalidated is False
+
+    v(3)
+
+    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
+    assert is_v_prime._comp.invalidated is True
