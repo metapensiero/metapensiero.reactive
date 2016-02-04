@@ -132,3 +132,10 @@ class Computation(object):
 
     def _on_parent_invalidated(self, parent):
         self.stop()
+
+    def __repr__(self):
+        return '<{}.{} for {} at {}>'.format(self.__module__,
+                                             self.__class__.__name__,
+                                             repr(self._func),
+                                             id(self))
+
