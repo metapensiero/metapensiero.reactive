@@ -13,6 +13,8 @@ import logging
 
 from metapensiero import signal
 
+from .exception import ReactiveError
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,6 +55,7 @@ class Computation(object):
         self._func = func
         self._parent = parent
         self._recomputing = False
+        self.guard = None
         if on_error:
             self.on_error.connect(on_error)
 
@@ -81,11 +84,18 @@ class Computation(object):
 
     def invalidate(self):
         """Invalidate the current state of this computation"""
-        if not self.invalidated:
+        guard = self.guard
+        if guard and self._parent:
+            raise ReactiveError("The guard cannot be used with parent")
+        elif guard:
+            recomputing_allowed = self.guard(self)
+        else:
+            recomputing_allowed = True
+        if (not (self.invalidated or guard)) or (guard and recomputing_allowed):
             if not (self._recomputing or self.stopped):
                 flusher = self._tracker.flusher
                 flusher.add_computation(self)
-                self.on_invalidate.notify()
+            self.on_invalidate.notify()
 
         self.invalidated = True
 
