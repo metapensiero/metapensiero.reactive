@@ -60,7 +60,13 @@ class BaseFlushManager(object):
             if immediate:
                 self._run_flush()
             else:
-                self._schedule_flush()
+                if self._tracker.in_compute:
+                    self._tracker.on_after_compute.connect(self._schedule_flush_after_compute)
+                else:
+                    self._schedule_flush()
+
+    def _schedule_flush_after_compute(self):
+        self._schedule_flush()
 
     def _schedule_flush(self):
         """Schedule a flush to be executed asap in another 'task' if something

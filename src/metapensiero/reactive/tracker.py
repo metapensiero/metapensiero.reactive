@@ -12,15 +12,20 @@ import six
 import contextlib
 import logging
 
+from metapensiero import signal
+
 from .computation import Computation
 from .dependency import Dependency
 
 logger = logging.getLogger(__name__)
 
 
+@six.add_metaclass(signal.SignalAndHandlerInitMeta)
 class Tracker(object):
 
     FLUSHER_FACTORY = None
+
+    on_after_compute = signal.Signal()
 
     def __init__(self, flusher_factory=None):
         self._computations = set()
