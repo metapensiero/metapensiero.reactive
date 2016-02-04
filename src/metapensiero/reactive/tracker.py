@@ -67,9 +67,16 @@ class Tracker(object):
         finally:
             self.current_computation = old_computation
             self.in_compute = old_in_compute
+        if not self.in_compute:
+            self.on_after_compute.notify()
+            self.on_after_compute.subscribers.clear()
 
-    def reactive(self, func, on_error=None):
-        comp = Computation(self, self.current_computation, func, on_error)
+    def reactive(self, func, on_error=None, with_parent=True):
+        if with_parent:
+            cc = self.current_computation
+        else:
+            cc = None
+        comp = Computation(self, cc, func, on_error)
         return comp
 
     def on_invalidate(self, func):
