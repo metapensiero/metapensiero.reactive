@@ -24,7 +24,7 @@ setup(
     version=VERSION,
     url="https://github.com/azazel75/metapensiero.reactive",
 
-    description="a unobtrusive and light reactive system",
+    description="an unobtrusive and light reactive system",
     long_description=README + u'\n\n' + CHANGES,
 
     author="Alberto Berti",
