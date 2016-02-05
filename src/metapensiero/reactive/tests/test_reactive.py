@@ -7,8 +7,8 @@
 
 from metapensiero import reactive
 
-def test_computation_invalidation():
-    t = reactive.get_tracker()
+def test_computation_invalidation(env):
+    t = env.tracker
     dep = t.dependency()
     v = "A sample V"
     results = dict(autorun=[], comp_invalidate=False)
@@ -35,14 +35,15 @@ def test_computation_invalidation():
     t.flusher.on_before_flush.connect(_before_flush_cback)
     assert len(dep._dependents) == 1
     dep.changed()
+    env.wait_for_flush()
     assert results == dict(autorun=["A sample V", "A sample V"], comp_invalidate=True)
     assert comp.invalidated is False
     assert t.active is False
     assert t.current_computation is None
     assert len(dep._dependents) == 1
 
-def test_computation_stopping():
-    t = reactive.get_tracker()
+def test_computation_stopping(env):
+    t = env.tracker
     dep = t.dependency()
     v = "A sample V"
     results = dict(autorun=[], comp_invalidate=False)
@@ -66,15 +67,16 @@ def test_computation_stopping():
     comp.stop()
     assert len(dep._dependents) == 0
     dep.changed()
+    env.wait_for_flush()
     assert results == dict(autorun=["A sample V"], comp_invalidate=False)
     assert comp.invalidated is True
     assert t.active is False
     assert t.current_computation is None
     assert len(dep._dependents) == 0
 
-def test_value():
+def test_value(env):
 
-    t = reactive.get_tracker()
+    t = env.tracker
     v = reactive.Value(1)
 
     results = dict(autorun=[])
@@ -89,12 +91,13 @@ def test_value():
     comp = t.reactive(autorun)
     assert results == dict(autorun=[1])
     v(2)
+    env.wait_for_flush()
     assert results == dict(autorun=[1,2])
 
 
-def test_reactivenamedlist():
+def test_reactivenamedlist(env):
 
-    t = reactive.get_tracker()
+    t = env.tracker
     Point = reactive.namedlist('Point', 'x y', default=0)
     p = Point(10, 15)
     results = []
@@ -107,16 +110,19 @@ def test_reactivenamedlist():
     assert len(p._deps) == 2
     assert results == [(10, 15)]
     p.x = 20
+    env.wait_for_flush()
     assert results == [(10, 15), (20, 15)]
     p.x = 20
     p.y = 15
+    env.wait_for_flush()
     assert results == [(10, 15), (20, 15)]
     p.y = 25
+    env.wait_for_flush()
     assert results == [(10, 15), (20, 15), (20, 25)]
 
-def test_reactive_property():
+def test_reactive_property(env):
 
-    t = reactive.get_tracker()
+    t = env.tracker
     results = dict(ext_autorun=[], int_autorun=[])
 
     class MyReactive(object):
@@ -152,12 +158,14 @@ def test_reactive_property():
     comp = t.reactive(ext_autorun)
     assert results == dict(ext_autorun=[True], int_autorun=[True])
     r.text = 'Yes, foo is here'
+    env.wait_for_flush()
     assert results == dict(ext_autorun=[True], int_autorun=[True, True])
     r.text = 'Just bar in here'
+    env.wait_for_flush()
     assert results == dict(ext_autorun=[True, False],
                            int_autorun=[True, True, False])
 
-def test_value_with_nested_autorun():
+def test_value_with_nested_autorun(env):
 
     import math
 
@@ -167,7 +175,7 @@ def test_value_with_nested_autorun():
             return False
         return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
 
-    t = reactive.get_tracker()
+    t = env.tracker
 
     results = dict(autorun=[], autorun2=[])
 
@@ -190,18 +198,21 @@ def test_value_with_nested_autorun():
     assert results == dict(autorun=[1, 1], autorun2=[True])
     assert is_v_prime.value == True
     v(2)
+    env.wait_for_flush()
     assert results == dict(autorun=[1, 1, 2], autorun2=[True])
     assert is_v_prime.value == True
     v(2)
+    env.wait_for_flush()
     assert results == dict(autorun=[1, 1, 2], autorun2=[True])
     assert is_v_prime.value == True
     v(4)
+    env.wait_for_flush()
     assert results == dict(autorun=[1, 1, 2, 4], autorun2=[True, False])
     assert is_v_prime.value == False
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 1
 
-def test_value_with_nested_autorun_stop_non_directly_dependent():
+def test_value_with_nested_autorun_stop_non_directly_dependent(env):
 
     import math
 
@@ -211,7 +222,7 @@ def test_value_with_nested_autorun_stop_non_directly_dependent():
             return False
         return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
 
-    t = reactive.get_tracker()
+    t = env.tracker
 
     results = dict(autorun=[], autorun2=[])
 
@@ -234,7 +245,6 @@ def test_value_with_nested_autorun_stop_non_directly_dependent():
     assert results == dict(autorun=[1, 1], autorun2=[True])
     assert is_v_prime.value == True
 
-
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 1
 
@@ -245,10 +255,11 @@ def test_value_with_nested_autorun_stop_non_directly_dependent():
 
     v(4)
 
+    env.wait_for_flush()
     assert results == dict(autorun=[1, 1], autorun2=[True])
     assert is_v_prime.value == True
 
-def test_value_with_nested_autorun_stop_dependent():
+def test_value_with_nested_autorun_stop_dependent(env):
 
     import math
 
@@ -258,7 +269,7 @@ def test_value_with_nested_autorun_stop_dependent():
             return False
         return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
 
-    t = reactive.get_tracker()
+    t = env.tracker
 
     results = dict(autorun=[], autorun2=[])
 
@@ -289,10 +300,11 @@ def test_value_with_nested_autorun_stop_dependent():
 
     v(4)
 
+    env.wait_for_flush()
     assert results == dict(autorun=[1], autorun2=[True])
     assert is_v_prime.value == True
 
-def test_value_with_nested_autorun_stop_two_dependents():
+def test_value_with_nested_autorun_stop_two_dependents(env):
 
     import math
 
@@ -302,7 +314,7 @@ def test_value_with_nested_autorun_stop_two_dependents():
             return False
         return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
 
-    t = reactive.get_tracker()
+    t = env.tracker
 
     results = dict(autorun=[], autorun2=[], autorun3=[])
 
@@ -338,6 +350,7 @@ def test_value_with_nested_autorun_stop_two_dependents():
     assert len(is_v_prime._dep._dependents) == 1
 
     v(4)
+    env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4], autorun2=[True], autorun3=[True, False])
     assert is_v_prime.value == False
@@ -348,6 +361,7 @@ def test_value_with_nested_autorun_stop_two_dependents():
     assert len(is_v_prime._dep._dependents) == 0
 
     v(5)
+    env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4], autorun2=[True], autorun3=[True, False])
     assert is_v_prime._comp.invalidated is True
@@ -357,11 +371,13 @@ def test_value_with_nested_autorun_stop_two_dependents():
     assert is_v_prime._comp.invalidated is False
 
     v(7)
+    env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4, 5, 7], autorun2=[True], autorun3=[True, False, True])
     assert is_v_prime._comp.invalidated is False
 
     v(8)
+    env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
     assert is_v_prime._comp.invalidated is False
@@ -372,6 +388,7 @@ def test_value_with_nested_autorun_stop_two_dependents():
     assert is_v_prime._comp.invalidated is False
 
     v(3)
+    env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
     assert is_v_prime._comp.invalidated is True
