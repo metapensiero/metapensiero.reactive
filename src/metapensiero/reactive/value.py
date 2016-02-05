@@ -133,18 +133,34 @@ class Value(object):
                 func()
         return self._get_instance_value(instance)
 
-    def invalidate(self, instance=None):
-        if instance:
-            comp = self._comp.get(instance)
-        else:
-            comp = self._comp
-        if comp:
-            comp.invalidate()
-        else:
+    def stop(self, instance=None):
+        if self._generator:
             if instance:
-                self._value[instance] = undefined
+                comp = self._comp.pop(instance, None)
             else:
-                self.value = undefined
+                comp = self._comp
+                self._comp = None
+            if comp:
+                comp.stop()
+            else:
+                if instance:
+                    self._value[instance] = undefined
+                else:
+                    self.value = undefined
+
+    def invalidate(self, instance=None):
+        if self._generator:
+            if instance:
+                comp = self._comp.get(instance)
+            else:
+                comp = self._comp
+            if comp:
+                comp.invalidate()
+            else:
+                if instance:
+                    self._value[instance] = undefined
+                else:
+                    self.value = undefined
 
     def __delete__(self, instance, owner):
         self.invalidate(instance)
