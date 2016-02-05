@@ -7,6 +7,7 @@
 #
 
 import os
+import sys
 from codecs import open
 
 from setuptools import setup, find_packages
@@ -18,6 +19,13 @@ with open(os.path.join(here, 'CHANGES.rst'), encoding='utf-8') as f:
     CHANGES = f.read()
 with open(os.path.join(here, 'version.txt'), encoding='utf-8') as f:
     VERSION = f.read().strip()
+
+PY2 = sys.version_info[:1] == (2,)
+
+TESTS_REQUIREMENTS = ['pytest']
+
+if PY2:
+    TESTS_REQUIREMENTS.append('gevent')
 
 setup(
     name="metapensiero.reactive",
@@ -54,5 +62,5 @@ setup(
                       'namedlist'],
     extras_require={'dev': ['metapensiero.tool.bump_version', 'docutils']},
     setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
+    tests_require=TESTS_REQUIREMENTS,
 )
