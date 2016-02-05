@@ -9,3 +9,8 @@ Changes
 - Initial effort.
 - Added testing with tox and ``gevent`` and ``asyncio``.
 - Firt cut of the docs.
+
+0.2 (2016-02-05)
+~~~~~~~~~~~~~~~~
+
+- small doc fixes.
