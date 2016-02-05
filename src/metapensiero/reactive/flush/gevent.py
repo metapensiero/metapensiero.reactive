@@ -23,6 +23,14 @@ class GeventFlushManager(BaseFlushManager):
 
     HAS_SUSPEND_CAPABILITY = True
 
+    def __init__(self, tracker):
+        super(GeventFlushManager,self).__init__(tracker)
+        self._flush_greenlet = None
+
     def _schedule_flush(self):
-        gevent.spawn(self._run_flush)
+        self._flush_greenlet = gevent.spawn(self._run_flush)
         logger.debug("Scheduled gevent flush")
+
+    def _run_flush(self):
+        super(GeventFlushManager, self)._run_flush()
+        logger.debug("Gevent flush completed")

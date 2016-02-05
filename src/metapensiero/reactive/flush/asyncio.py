@@ -21,7 +21,15 @@ class AsyncioFlushManager(BaseFlushManager):
     def __init__(self, tracker, loop=None):
         super(AsyncioFlushManager, self).__init__(tracker)
         self.loop = loop or asyncio.get_event_loop()
+        self._flush_future = None
 
     def _schedule_flush(self):
+        self._flush_future = asyncio.Future(loop=self.loop)
         self.loop.call_soon(self._run_flush)
         logger.debug("Scheduled asyncio flush")
+
+    def _run_flush(self):
+        super(AsyncioFlushManager, self)._run_flush()
+        self._flush_future.set_result(True)
+        logger.debug("Asyncio flush complete")
+        self._flush_future = None
