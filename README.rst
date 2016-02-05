@@ -74,9 +74,9 @@ To do that we need to trasform ``cur_temp_fahrenheit`` into a
 that value and the *computation* that uses it. This way, when the
 value is changed, our ``log_temp_celsius()`` can be re-run and it will
 do its work. So we change the code a bit mostly by using a getter and
-a setter to change the temp variable so that we can do something we it
-happens and then we instruct the *tracker* to run the log function so
-that it knows what to re-run. Let's see:
+a setter to change the temp variable so that we can do something when
+this happens and then we instruct the *tracker* to run the log
+function so that it knows what to re-run. Let's see:
 
 .. code:: python
 
