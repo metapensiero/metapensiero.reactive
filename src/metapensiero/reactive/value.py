@@ -146,7 +146,7 @@ class Value(object):
             else:
                 self.value = undefined
 
-    def __del__(self, instance, owner):
+    def __delete__(self, instance, owner):
         self.invalidate(instance)
 
     def _comp_recompute_guard(self, instance, comp):
