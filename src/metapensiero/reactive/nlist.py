@@ -54,7 +54,7 @@ class ReactiveNamedListMixin(object):
 
 def reactivenamedlist(name, *args, **kwargs):
     nlist = namedlist.namedlist('_nl_' + name, *args, **kwargs)
-    rnl = type(name, (ReactiveNamedListMixin, nlist,), {})
+    rnl = type(str(name), (ReactiveNamedListMixin, nlist,), {})
     return rnl
 
 __all__ = ('reactivenamedlist',)
