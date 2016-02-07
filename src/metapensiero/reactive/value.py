@@ -28,14 +28,18 @@ class Value(object):
     package works.
     """
 
-    def __init__(self, initial_value=undefined, equal=None):
+    def __init__(self, generator=undefined,  initial_value=undefined,
+                 equal=None):
         self._equal = equal or operator.eq
         self._tracker = t = get_tracker()
         self._descriptor_initialized = False
-        if callable(initial_value):
+        if callable(generator):
             # suppose it's used as a method decorator
-            self._generator = initial_value
-            self._value = undefined
+            self._generator = generator
+            self._value = initial_value
+        elif generator is not undefined:
+            self._generator = None
+            self._value = generator
         else:
             self._generator = None
             self._value = initial_value
@@ -59,38 +63,25 @@ class Value(object):
         else:
             self.value = generator()
 
-    def _get_instance_value(self, instance):
+    def _get_value(self, instance=None):
         if self._tracker.active:
-            if instance not in self._dep:
-                self._dep[instance] = self._tracker.dependency()
-            self._dep[instance].depend()
-        if instance not in self._value:
+            dep = self._get_member('dep', instance)
+            if dep is undefined or dep is None:
+                dep =  self._tracker.dependency()
+                self._set_member('dep', dep, instance)
+            dep.depend()
+        value = self._get_member('value', instance)
+        if instance is not None and value is undefined:
             raise ReactiveError("Value hasn't been calculated yet..why?")
-        return self._value[instance]
+        elif instance is None and value is undefined:
+            raise ValueError('You have to set a value first')
+        return value
 
     @property
     def value(self):
-        tracker = self._tracker
         if self._generator:
-            func = functools.partial(self._auto, None, self._generator)
-            if tracker.active:
-                comp = self._comp
-                if not comp:
-                    comp = self._comp = tracker.reactive(func, with_parent=False)
-                    comp.guard = functools.partial(
-                        self._comp_recompute_guard, None
-                    )
-                if comp.invalidated:
-                    comp._recompute()
-            else:
-                if self._value is undefined:
-                    func()
-        if tracker.active:
-            self._dep.depend()
-        if self._value is undefined:
-            raise ValueError('You have to set a value first')
-        else:
-            return self._value
+            self._trigger_generator()
+        return self._get_value()
 
     @value.setter
     def value(self, new):
@@ -107,6 +98,38 @@ class Value(object):
                 self._dep[instance] = self._tracker.dependency()
             self._dep[instance].changed()
 
+    def _get_member(self, name, instance=None):
+        member = getattr(self, '_' + name)
+        if instance:
+            member = member.get(instance, undefined)
+        return member
+
+    def _set_member(self, name, value, instance=None):
+        if instance:
+            member = getattr(self, '_' + name)
+            member[instance] = value
+        else:
+            setattr(self, '_' + name, value)
+
+    def _trigger_generator(self, instance=None):
+        tracker = self._tracker
+        if self._generator:
+            func = functools.partial(self._auto, instance, self._generator)
+            if tracker.active:
+                comp = self._get_member('comp', instance)
+                if comp is undefined or comp is None:
+                    comp = tracker.reactive(func, with_parent=False)
+                    comp.guard = functools.partial(
+                        self._comp_recompute_guard, instance
+                    )
+                    self._set_member('comp', comp, instance)
+                if comp.invalidated:
+                    comp._recompute()
+            else:
+                value = self._get_member('value', instance)
+                if value is undefined:
+                    func()
+
     def __call__(self, v=undefined):
         if v is not undefined:
             self.value = v
@@ -116,22 +139,8 @@ class Value(object):
     def __get__(self, instance, owner):
         if not self._descriptor_initialized:
             self._init_descriptor_environment()
-        tracker = self._tracker
-        func = functools.partial(self._auto, instance, self._generator)
-        if tracker.active:
-            comp = self._comp.get(instance)
-            if not comp:
-                comp = self._comp[instance] = self._tracker.reactive(func,
-                                                                     with_parent=False)
-                comp.guard = functools.partial(
-                    self._comp_recompute_guard, instance
-                )
-            if comp.invalidated:
-                comp._recompute()
-        else:
-            if not (instance in self._value):
-                func()
-        return self._get_instance_value(instance)
+        self._trigger_generator(instance)
+        return self._get_value(instance)
 
     def stop(self, instance=None):
         if self._generator:
@@ -166,8 +175,5 @@ class Value(object):
         self.invalidate(instance)
 
     def _comp_recompute_guard(self, instance, comp):
-        if instance:
-            dep = self._dep.get(instance)
-        else:
-            dep = self._dep
+        dep = self._get_member('dep', instance)
         return dep and dep.has_dependents
