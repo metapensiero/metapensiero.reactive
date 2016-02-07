@@ -84,13 +84,14 @@ def test_value(env):
     def autorun(comp):
         assert t.active is True
         assert t.current_computation is comp
-        results['autorun'].append(v())
+        results['autorun'].append(v.value)
 
-    assert v() == 1
+
+    assert v.value == 1
     assert results == dict(autorun=[])
     comp = t.reactive(autorun)
     assert results == dict(autorun=[1])
-    v(2)
+    v.value = 2
     env.wait_for_flush()
     assert results == dict(autorun=[1,2])
 
@@ -227,19 +228,19 @@ def test_value_with_nested_autorun_stop_non_directly_dependent(env):
     results = dict(autorun=[], autorun2=[])
 
     def autorun():
-        res = v()
-        results['autorun'].append(v())
+        res = v.value
+        results['autorun'].append(v.value)
         return is_prime(res)
 
     def autorun2(comp):
-        results['autorun2'].append(is_v_prime())
+        results['autorun2'].append(is_v_prime.value)
 
     assert results == dict(autorun=[], autorun2=[])
     v = reactive.Value(1)
     is_v_prime = reactive.Value(autorun)
-    assert v() == 1
+    assert v.value == 1
     assert results == dict(autorun=[], autorun2=[])
-    is_v_prime()
+    is_v_prime.value
     assert results == dict(autorun=[1], autorun2=[])
     comp = t.reactive(autorun2)
     assert results == dict(autorun=[1, 1], autorun2=[True])
@@ -253,7 +254,7 @@ def test_value_with_nested_autorun_stop_non_directly_dependent(env):
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 0
 
-    v(4)
+    v.value = 4
 
     env.wait_for_flush()
     assert results == dict(autorun=[1, 1], autorun2=[True])
@@ -274,17 +275,17 @@ def test_value_with_nested_autorun_stop_dependent(env):
     results = dict(autorun=[], autorun2=[])
 
     def autorun():
-        res = v()
-        results['autorun'].append(v())
+        res = v.value
+        results['autorun'].append(v.value)
         return is_prime(res)
 
     def autorun2(comp):
-        results['autorun2'].append(is_v_prime())
+        results['autorun2'].append(is_v_prime.value)
 
     assert results == dict(autorun=[], autorun2=[])
     v = reactive.Value(1)
     is_v_prime = reactive.Value(autorun)
-    assert v() == 1
+    assert v.value == 1
     assert results == dict(autorun=[], autorun2=[])
     comp = t.reactive(autorun2)
     assert results == dict(autorun=[1], autorun2=[True])
@@ -298,7 +299,7 @@ def test_value_with_nested_autorun_stop_dependent(env):
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 0
 
-    v(4)
+    v.value = 4
 
     env.wait_for_flush()
     assert results == dict(autorun=[1], autorun2=[True])
@@ -319,21 +320,21 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     results = dict(autorun=[], autorun2=[], autorun3=[])
 
     def autorun():
-        res = v()
-        results['autorun'].append(v())
+        res = v.value
+        results['autorun'].append(v.value)
         return is_prime(res)
 
     def autorun2(comp):
-        results['autorun2'].append(is_v_prime())
+        results['autorun2'].append(is_v_prime.value)
 
     def autorun3(comp):
-        results['autorun3'].append(is_v_prime())
+        results['autorun3'].append(is_v_prime.value)
 
 
     assert results == dict(autorun=[], autorun2=[], autorun3=[])
     v = reactive.Value(1)
     is_v_prime = reactive.Value(autorun)
-    assert v() == 1
+    assert v.value == 1
     assert results == dict(autorun=[], autorun2=[], autorun3=[])
     comp = t.reactive(autorun2)
     assert results == dict(autorun=[1], autorun2=[True], autorun3=[])
@@ -349,7 +350,7 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 1
 
-    v(4)
+    v.value = 4
     env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4], autorun2=[True], autorun3=[True, False])
@@ -360,7 +361,7 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 0
 
-    v(5)
+    v.value = 5
     env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4], autorun2=[True], autorun3=[True, False])
@@ -370,13 +371,13 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     assert results == dict(autorun=[1, 4, 5], autorun2=[True], autorun3=[True, False, True])
     assert is_v_prime._comp.invalidated is False
 
-    v(7)
+    v.value = 7
     env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4, 5, 7], autorun2=[True], autorun3=[True, False, True])
     assert is_v_prime._comp.invalidated is False
 
-    v(8)
+    v.value = 8
     env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
@@ -387,7 +388,7 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
     assert is_v_prime._comp.invalidated is False
 
-    v(3)
+    v.value = 3
     env.wait_for_flush()
 
     assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
