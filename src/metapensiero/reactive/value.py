@@ -142,6 +142,14 @@ class Value(object):
         self._trigger_generator(instance)
         return self._get_value(instance)
 
+    def __set__(self, instance, value):
+        if not self._descriptor_initialized:
+            self._init_descriptor_environment()
+        if self._generator:
+            raise ReactiveError("Cannot set the value in a descriptor defined with"
+                                " generator function")
+        return self._set_instance_value(instance)
+
     def stop(self, instance=None):
         if self._generator:
             if instance:
