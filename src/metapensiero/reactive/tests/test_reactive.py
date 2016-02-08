@@ -373,28 +373,33 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     assert is_v_prime._comp.invalidated is True
 
     comp2 = t.reactive(autorun3)
-    assert results == dict(autorun=[1, 4, 5], autorun2=[True], autorun3=[True, False, True])
+    assert results == dict(autorun=[1, 4, 5], autorun2=[True],
+                           autorun3=[True, False, True])
     assert is_v_prime._comp.invalidated is False
 
     v.value = 7
     env.wait_for_flush()
 
-    assert results == dict(autorun=[1, 4, 5, 7], autorun2=[True], autorun3=[True, False, True])
+    assert results == dict(autorun=[1, 4, 5, 7], autorun2=[True],
+                           autorun3=[True, False, True])
     assert is_v_prime._comp.invalidated is False
 
     v.value = 8
     env.wait_for_flush()
 
-    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
+    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True],
+                           autorun3=[True, False, True, False])
     assert is_v_prime._comp.invalidated is False
 
     comp2.stop()
 
-    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
+    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True],
+                           autorun3=[True, False, True, False])
     assert is_v_prime._comp.invalidated is False
 
     v.value = 3
     env.wait_for_flush()
 
-    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True], autorun3=[True, False, True, False])
+    assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True],
+                           autorun3=[True, False, True, False])
     assert is_v_prime._comp.invalidated is True
