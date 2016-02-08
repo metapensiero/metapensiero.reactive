@@ -116,23 +116,18 @@ class Value(object):
             setattr(self, '_' + name, value)
 
     def _trigger_generator(self, instance=None):
-        tracker = self._tracker
         if self._generator:
+            tracker = self._tracker
             func = functools.partial(self._auto, instance, self._generator)
-            if tracker.active:
-                comp = self._get_member('comp', instance)
-                if comp is undefined or comp is None:
-                    comp = tracker.reactive(func, with_parent=False)
-                    comp.guard = functools.partial(
-                        self._comp_recompute_guard, instance
-                    )
-                    self._set_member('comp', comp, instance)
-                if comp.invalidated:
-                    comp._recompute()
-            else:
-                value = self._get_member('value', instance)
-                if value is undefined:
-                    func()
+            comp = self._get_member('comp', instance)
+            if comp is undefined or comp is None:
+                comp = tracker.reactive(func, with_parent=False)
+                comp.guard = functools.partial(
+                    self._comp_recompute_guard, instance
+                )
+                self._set_member('comp', comp, instance)
+            if comp.invalidated:
+                comp._recompute()
 
     def __call__(self, v=undefined):
         if v is not undefined:
