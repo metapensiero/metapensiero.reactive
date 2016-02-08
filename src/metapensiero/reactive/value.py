@@ -176,4 +176,4 @@ class Value(object):
 
     def _comp_recompute_guard(self, instance, comp):
         dep = self._get_member('dep', instance)
-        return dep and dep.has_dependents
+        return dep and (dep is not undefined) and dep.has_dependents
