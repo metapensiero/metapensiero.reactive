@@ -139,7 +139,8 @@ class Value(object):
     def __get__(self, instance, owner):
         if not self._descriptor_initialized:
             self._init_descriptor_environment()
-        self._trigger_generator(instance)
+        if self._generator:
+            self._trigger_generator(instance)
         return self._get_value(instance)
 
     def __set__(self, instance, value):
