@@ -5,6 +5,8 @@
 # :License:   GNU General Public License version 3 or later
 #
 
+import pytest
+
 from metapensiero import reactive
 
 def test_computation_invalidation(env):
@@ -403,3 +405,30 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     assert results == dict(autorun=[1, 4, 5, 7, 8], autorun2=[True],
                            autorun3=[True, False, True, False])
     assert is_v_prime._comp.invalidated is True
+
+def test_value_no_tracker_active(env):
+
+    v1 = reactive.Value((False, True))
+
+    def f():
+        return all(v1.value)
+    v2 = reactive.Value(f)
+
+    assert v2.value == False
+    v1.value = (True, True)
+    env.wait_for_flush()
+    assert v2.value == True
+
+def test_value_undefined(env):
+
+    v = reactive.Value()
+    with pytest.raises(ValueError):
+        v.value
+
+    class A(object):
+
+        v = reactive.Value()
+
+    a = A()
+    with pytest.raises(AttributeError):
+        a.v.value
