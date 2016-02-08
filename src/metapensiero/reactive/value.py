@@ -71,10 +71,14 @@ class Value(object):
                 self._set_member('dep', dep, instance)
             dep.depend()
         value = self._get_member('value', instance)
-        if instance is not None and value is undefined:
+        if self._generator and value is undefined:
             raise ReactiveError("Value hasn't been calculated yet..why?")
-        elif instance is None and value is undefined:
-            raise ValueError('You have to set a value first')
+        elif not self._generator and value is undefined:
+            if instance:
+                # access via __get__
+                raise AttributeError("Value is undefined")
+            else:
+                raise ValueError('You have to set a value first')
         return value
 
     @property
