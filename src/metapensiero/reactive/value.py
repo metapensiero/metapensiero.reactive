@@ -180,7 +180,7 @@ class Value(object):
                     self.value = undefined
 
     def __delete__(self, instance):
-        self.invalidate(instance)
+        self.stop(instance)
 
     def _comp_recompute_guard(self, instance, comp):
         dep = self._get_member('dep', instance)
