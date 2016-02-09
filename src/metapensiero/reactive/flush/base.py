@@ -87,6 +87,7 @@ class BaseFlushManager(object):
         recalcs = set()
         try:
             if len(pending) > 0:
+                # pending may not contain all the computation flushed
                 self.on_before_flush.notify(pending)
                 self.on_before_flush.clear()
             while len(pending) > 0:
