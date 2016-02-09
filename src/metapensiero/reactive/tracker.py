@@ -16,6 +16,7 @@ from metapensiero import signal
 
 from .computation import Computation
 from .dependency import Dependency
+from .exception import ReactiveError
 
 logger = logging.getLogger(__name__)
 
@@ -95,3 +96,21 @@ class Tracker(object):
 
     def dependency(self):
         return Dependency(self)
+
+    @contextlib.contextmanager
+    def suspend_computation(self):
+        """Adapt to suspend computation."""
+        if not self.active:
+            raise ReactiveError("Can suspend only if active")
+        try:
+            old_computation = self.current_computation
+            self.current_computation = None
+            old_in_compute = self.in_compute
+            self.in_compute = False
+            old_non_suspendable = self.non_suspendable
+            self.non_suspendable = False
+            yield
+        finally:
+            self.current_computation = old_computation
+            self.in_compute = old_in_compute
+            self.non_suspendable = old_non_suspendable

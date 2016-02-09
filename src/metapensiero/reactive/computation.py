@@ -139,3 +139,5 @@ class Computation(object):
                                              repr(self._func),
                                              id(self))
 
+    def suspend(self):
+        return self._tracker.supsend_computation()
