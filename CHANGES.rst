@@ -14,3 +14,15 @@ Changes
 ~~~~~~~~~~~~~~~~
 
 - small doc fixes.
+
+0.3 (2016-02-10)
+~~~~~~~~~~~~~~~~
+
+- more tests.
+- allow __set__ if generator is not defined.
+- refactoring of Value's code.
+- Fix behavior if Value's accessed when tracking isn't active.
+- Provide a mechanism to halt tracking while computing if system
+  suspension is needed (``gevent``, ``asyncio``).
+- Updates to the doc.
+- Code is now tested in a pre-production environment.

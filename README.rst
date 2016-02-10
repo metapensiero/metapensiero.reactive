@@ -32,7 +32,7 @@ automatically just when it's  appropriate.
 
 This package implement just that. No, wait, not a spreadsheet, but a
 way to express that a block of code (a function) that creates a result
-(a calculated value) or a /side effect/ depends on some other value
+(a calculated value) or a *side effect* depends on some other value
 so that when the value changes, the block of code is automatically
 re-run.
 
@@ -156,7 +156,6 @@ setter, how can we avoid that? Here is the same example using the
   from metapensiero import reactive
 
   tracker = reactive.get_tracker()
-
   cur_temp_fahrenheit = reactive.Value(40)
 
   def cur_temp_celsius(t_fahrenheit):
@@ -188,8 +187,16 @@ __ https://pypi.python.org/pypi/namedlist
 
 The framework is also compatible with ``gevent`` and ``asyncio`` in
 order to batch computation's recalculation in another ``Greenlet`` or
-``Task``, respectively. For all those features, please have a look at
-code and tests for now.
+``Task``, respectively. As all the *invalidated* calculations are
+recomputed sequentially, it's important to avoid having *suspension
+points* in the reactive code, like calls to ``sleep()`` functions or
+the execution of ``yield from`` and ``await`` statements. If this is
+unavoidable, a *manual* suspension context manager is avaliable in
+computations, named ``suspend()``. Using that, the block of code
+inside a *with* statement runs isolated, and tracking is reinstated
+afterwards.
+
+For all those features, please have a look at code and tests for now.
 
 Testing
 -------
