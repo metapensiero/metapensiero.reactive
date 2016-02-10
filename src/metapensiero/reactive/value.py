@@ -148,7 +148,7 @@ class Value(object):
         if self._generator:
             raise ReactiveError("Cannot set the value in a descriptor defined with"
                                 " generator function")
-        return self._set_instance_value(instance)
+        return self._set_instance_value(instance, value)
 
     def stop(self, instance=None):
         if self._generator:
