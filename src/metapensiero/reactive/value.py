@@ -180,6 +180,8 @@ class Value(object):
                     self.value = undefined
 
     def __delete__(self, instance):
+        if not self._descriptor_initialized:
+            self._init_descriptor_environment()
         self.stop(instance)
 
     def _comp_recompute_guard(self, instance, comp):
