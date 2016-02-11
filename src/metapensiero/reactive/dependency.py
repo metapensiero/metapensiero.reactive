@@ -40,9 +40,10 @@ class Dependency(object):
 
     def changed(self):
         deps = self._dependents
-        for comp in list(deps):
-            comp.invalidate()
-        self._tracker.flusher.require_flush()
+        if len(deps) > 0:
+            for comp in list(deps):
+                comp.invalidate()
+            self._tracker.flusher.require_flush()
 
     @property
     def has_dependents(self):
