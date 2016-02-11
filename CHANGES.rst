@@ -26,3 +26,8 @@ Changes
   suspension is needed (``gevent``, ``asyncio``).
 - Updates to the doc.
 - Code is now tested in a pre-production environment.
+
+0.4 (2016-02-11)
+~~~~~~~~~~~~~~~~
+
+- fix a small bug in __delete__()
