@@ -31,3 +31,8 @@ Changes
 ~~~~~~~~~~~~~~~~
 
 - fix a small bug in __delete__()
+
+0.5 (2016-02-11)
+~~~~~~~~~~~~~~~~
+
+- require flush only when there are dependents
