@@ -74,8 +74,8 @@ To do that we need to trasform ``cur_temp_fahrenheit`` into a
 that value and the *computation* that uses it. This way, when the
 value is changed, our ``log_temp_celsius()`` can be re-run and it will
 do its work. So we change the code a bit mostly by using a getter and
-a setter to change the temp variable so that we can do something when
-this happens and then we instruct the *tracker* to run the log
+a setter to change the temp variable and add some code  when
+this happens and then instruct the *tracker* to run the log
 function so that it knows what to re-run. Let's see:
 
 .. code:: python
@@ -121,16 +121,16 @@ function so that it knows what to re-run. Let's see:
   assert log == [4.444444444444445, 10.0]
   assert cur_temp_fahrenheit == 60
 
-So, as you can see, when we set the current temperature to a new
+As you can see, when we set the current temperature to a new
 value, ``log_temp_celsius`` is re-run and a new entry is added to the
 ``log`` list. we can still use the function(s) without using the
 tracker, in which case we will have the default, normal, non-reactive
 behavior. When we use ``tracker.reactive()`` all the defined
-the dependencies on reactive-aware data sources is tracked by running
+dependencies on reactive-aware data sources are tracked by running
 the given function immediately. Next, when the reactive source
 changes, the tracker re-executes the function, thus re-tracking the
 dependencies that may be different. ``tracker.reactive()`` returns an
-handle, a ``Computation`` object, that can be used to stop the
+handle, a ``Computation`` object that can be used to stop the
 reactive behavior when it's no more necessary. The same object is
 given as parameter to the tracked function.
 
@@ -142,7 +142,7 @@ framework:
 * the new concepts to learn are very few and simple;
 
 * the reactive functions can be run alone without tracker involvement
-  and they will run as expected.
+  and they will run as normal code, without the need to refactor them.
 
 Tracked functions can use ``tracker.reactive()`` themselves, in which
 case the inner trackings will be stopped when the outer is re-run.
@@ -179,8 +179,45 @@ setter, how can we avoid that? Here is the same example using the
   cur_temp_fahrenheit.value = 60
   assert log == [4.444444444444445, 10.0]
 
-``Value`` class can be used also directly as a calculated value or as
-a method decorator. There is also a constructor to build reactive
+``Value`` class can be used also be used as a method decorator in a
+way similar to the builtin ``property`` decorator but with only a
+*getter* function.
+
+Another way to use the Value class is just as a value container, by
+using its ``value`` to get or set the value, or just as any other data
+member in a class body.
+
+.. code:: python
+
+  a = Value()
+
+  a.value = True
+  assert a.value == True
+
+  class Foo(object):
+
+      bar = Value()
+
+      @Value()
+      def zoo(self):
+          # ... calc something useful
+
+
+
+  foo = Foo()
+  foo.bar = True
+
+  assert foo.bar == True
+
+  animal = foo.zoo
+
+When used in class' body a ``Value`` saves a triplet of ``(Dependency,
+ Computation, value)`` per instance so you have to take it in
+account. ``Value`` uses weak references so you don't have to worry
+about instances staying alive when you code does not references them
+anymore.
+
+There is also a constructor to build reactive
 `namedlist`__ classes.
 
 __ https://pypi.python.org/pypi/namedlist
