@@ -213,9 +213,8 @@ member in a class body.
 
 When used in class' body a ``Value`` saves a triplet of ``(Dependency,
 Computation, value)`` per instance so you have to take that into
-account. ``Value`` uses weak references so you don't have to worry
-about instances staying alive when you code does not references them
-anymore.
+account. ``Value`` uses weak references in order to avoid keeping
+instances alive.
 
 There is also a constructor to build reactive
 `namedlist`__ classes.
