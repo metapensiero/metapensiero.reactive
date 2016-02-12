@@ -211,8 +211,8 @@ member in a class body.
 
   animal = foo.zoo
 
-When used in class' body a ``Value`` saves a triplet of (``Dependency``,
- ``Computation``, value) per instance so you have to take it in
+When used in class' body a ``Value`` saves a triplet of (``Dependency,
+Computation, value)`` per instance so you have to take it in
 account. ``Value`` uses weak references so you don't have to worry
 about instances staying alive when you code does not references them
 anymore.
