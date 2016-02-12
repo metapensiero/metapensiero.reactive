@@ -38,7 +38,8 @@ class Environment(object):
         if self.ff is BaseFlushManager:
             pass
         elif six.PY2 and self.ff is GeventFlushManager:
-            gevent.joinall([self.tracker.flusher._flush_greenlet])
+            if self.tracker.flusher._flush_greenlet is not None:
+                gevent.joinall([self.tracker.flusher._flush_greenlet])
         elif six.PY3 and self.ff is AsyncioFlushManager:
             if self.tracker.flusher._flush_future:
                 loop = asyncio.get_event_loop()
