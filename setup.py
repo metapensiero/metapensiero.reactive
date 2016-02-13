@@ -40,17 +40,17 @@ setup(
 
     license="GPLv3+",
     classifiers=[
-        'Development Status :: 4 - Beta',
+        "Development Status :: 5 - Production/Stable"
         "Programming Language :: Python",
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: GNU General Public License (GPL)",
        ],
-    keywords='reactive dataflow asyncio gevent',
+    keywords='reactive functional dataflow asyncio gevent',
 
     packages=find_packages('src'),
     package_dir={'': 'src'},
