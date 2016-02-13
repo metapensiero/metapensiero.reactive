@@ -30,9 +30,15 @@ Changes
 0.4 (2016-02-11)
 ~~~~~~~~~~~~~~~~
 
-- fix a small bug in __delete__()
+- fix a small bug in __delete__().
 
 0.5 (2016-02-11)
 ~~~~~~~~~~~~~~~~
 
-- require flush only when there are dependents
+- require flush only when there are dependents.
+
+0.6 (2016-02-13)
+~~~~~~~~~~~~~~~~
+
+- documentation updates.
+- add a ``@computation`` decorator.
