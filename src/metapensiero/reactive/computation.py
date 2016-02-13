@@ -21,8 +21,13 @@ logger = logging.getLogger(__name__)
 
 @six.add_metaclass(signal.SignalAndHandlerInitMeta)
 class Computation(object):
+    """A computation is an object runs a function and re-runs it again
+    when is invalidated, it does so until it is stopped. It injects
+    itself as the first argument to the function being run.
+    """
 
     on_error = signal.Signal()
+    """A signal that is notified when a computation results in an error."""
 
     @signal.Signal
     def on_invalidate(self, subscribers, notify):
@@ -50,13 +55,23 @@ class Computation(object):
 
     def __init__(self, tracker, parent, func, on_error=None):
         self.invalidated = False
+        """If it's invalidated, it needs re-computing"""
         self.first_run = True
+        """Is this computation the first?"""
         self.stopped = False
+        """Is this computation completely disabled"""
         self._tracker = tracker
+        """The associated Tracker"""
         self._func = func
+        """the function to execute"""
         self._parent = parent
+        """The parent computation"""
         self._recomputing = False
+        """True when a computation is re-running"""
         self.guard = None
+        """A callable that is called when invalidation triggers. It the result
+        is False, then the computation will not be added to the
+        to-be-recomputed list in the flusher."""
         if on_error:
             self.on_error.connect(on_error)
 
@@ -105,11 +120,13 @@ class Computation(object):
         return self.invalidated and not self.stopped
 
     def _compute(self):
+        """Run the computation and reset the invalidation"""
         self.invalidated = False
         with self._tracker.while_compute(self):
             self._func(self)
 
     def _recompute(self):
+        """Re-run the compute function and handle errors"""
         if self._needs_recompute:
             try:
                 self._recomputing = True
@@ -124,6 +141,9 @@ class Computation(object):
                 self._recomputing = False
 
     def stop(self):
+        """Cease to re-run the computation function when invalidated and
+        remove this instance from the pool of active computations.
+        """
         if not self.stopped:
             self.stopped = True
             self.invalidate()
@@ -132,6 +152,9 @@ class Computation(object):
             self._tracker = None
 
     def _on_parent_invalidated(self, parent):
+        """Handler that runs when a parent is invalidated. Currently it stops
+        this computation.
+        """
         self.stop()
 
     def __repr__(self):
@@ -141,6 +164,7 @@ class Computation(object):
                                              id(self))
 
     def suspend(self):
+        """Context manager to suspend tracking"""
         return self._tracker.supsend_computation()
 
 
