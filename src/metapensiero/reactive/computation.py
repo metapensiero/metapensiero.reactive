@@ -7,10 +7,11 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import six
-
+import functools
 import logging
+import weakref
 
+import six
 from metapensiero import signal
 
 from .exception import ReactiveError
@@ -141,3 +142,76 @@ class Computation(object):
 
     def suspend(self):
         return self._tracker.supsend_computation()
+
+
+class _Wrapper(object):
+    """A small class to help wrapping methods and to keep computations"""
+
+    def __init__(self, wrapped, tracker):
+        self.tracker = tracker
+        self.wrapped = wrapped
+        self.computations = weakref.WeakKeyDictionary()
+
+    def __get__(self, instance, owner):
+        wrap_call = functools.partial(self.__call__, instance)
+        return functools.update_wrapper(wrap_call, self.wrapped)
+
+    def __call__(self, instance):
+        comp = self.computations.get(instance)
+        if comp is None or (comp is not None and comp.stopped()):
+            comp = self.tracker.reactive(functools.partial(self.wrapped,
+                                                           instance))
+        return comp
+
+    def __delete__(self, instance):
+        if instance in self.computations:
+            comp = self.computations[instance]
+            del self.computations[instance]
+            comp.stop()
+
+def computation(method_or_tracker):
+    """A decorator that helps using computations directly in class
+    bodies. Returns a property descriptor that returns a callable to
+    start the computation on each instance. It allows also to remove
+    the computation for an instance. The computation is executed once
+    and returned. It is roughly equivalent to:
+
+    .. code:: python
+
+      class Foo(object):
+
+          def __init__(self):
+              self.computation = None
+
+          def start_computation(self, tracker=None):
+              tracker = tracker or metapensiero.reactive.get_tracker()
+              if not self.computation:
+                  self.computation = tracker.reactive(self._worker)
+              return self.computation
+
+          def _worker(self):
+              # do something useful
+
+    that becomes:
+
+    .. code:: python
+
+      class Foo(object):
+
+          @computation
+          def _worker(self):
+              # do something useful
+    """
+
+    from .tracker import Tracker
+    from . import get_tracker
+
+    def decorate(method):
+        return _Wrapper(method, tracker)
+
+    if isinstance(method_or_tracker, Tracker):
+        tracker = method_or_tracker
+        return decorate
+    else:
+        tracker = get_tracker()
+        return _Wrapper(method_or_tracker, tracker)

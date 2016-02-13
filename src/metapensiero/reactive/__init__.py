@@ -50,3 +50,4 @@ from .tracker import Tracker
 from .value import Value
 from .flush import BaseFlushManager
 from .nlist import reactivenamedlist as namedlist
+from .computation import computation
