@@ -44,6 +44,7 @@ def test_computation_invalidation(env):
     assert t.current_computation is None
     assert len(dep._dependents) == 1
 
+
 def test_computation_stopping(env):
     t = env.tracker
     dep = t.dependency()
@@ -75,6 +76,7 @@ def test_computation_stopping(env):
     assert t.active is False
     assert t.current_computation is None
     assert len(dep._dependents) == 0
+
 
 def test_value(env):
 
@@ -199,21 +201,22 @@ def test_value_with_nested_autorun(env):
     assert results == dict(autorun=[1], autorun2=[])
     comp = t.reactive(autorun2)
     assert results == dict(autorun=[1], autorun2=[True])
-    assert is_v_prime.value == True
+    assert is_v_prime.value is True
     v.value = 2
     env.wait_for_flush()
     assert results == dict(autorun=[1, 2], autorun2=[True])
-    assert is_v_prime.value == True
+    assert is_v_prime.value is True
     v.value = 2
     env.wait_for_flush()
     assert results == dict(autorun=[1,  2], autorun2=[True])
-    assert is_v_prime.value == True
+    assert is_v_prime.value is True
     v.value = 4
     env.wait_for_flush()
     assert results == dict(autorun=[1, 2, 4], autorun2=[True, False])
-    assert is_v_prime.value == False
+    assert is_v_prime.value is False
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 1
+
 
 def test_value_with_nested_autorun_stop_non_directly_dependent(env):
 
@@ -246,7 +249,7 @@ def test_value_with_nested_autorun_stop_non_directly_dependent(env):
     assert results == dict(autorun=[1], autorun2=[])
     comp = t.reactive(autorun2)
     assert results == dict(autorun=[1], autorun2=[True])
-    assert is_v_prime.value == True
+    assert is_v_prime.value is True
 
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 1
@@ -262,7 +265,8 @@ def test_value_with_nested_autorun_stop_non_directly_dependent(env):
     assert results == dict(autorun=[1], autorun2=[True])
     # the reading here will recalculate the already invalidated
     # computation of is_v_prime
-    assert is_v_prime.value == False
+    assert is_v_prime.value is False
+
 
 def test_value_with_nested_autorun_stop_dependent(env):
 
@@ -293,7 +297,7 @@ def test_value_with_nested_autorun_stop_dependent(env):
     assert results == dict(autorun=[], autorun2=[])
     comp = t.reactive(autorun2)
     assert results == dict(autorun=[1], autorun2=[True])
-    assert is_v_prime.value == True
+    assert is_v_prime.value is True
 
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 1
@@ -309,7 +313,8 @@ def test_value_with_nested_autorun_stop_dependent(env):
     assert results == dict(autorun=[1], autorun2=[True])
     # the reading here will recalculate the already invalidated
     # computation of is_v_prime
-    assert is_v_prime.value == False
+    assert is_v_prime.value is False
+
 
 def test_value_with_nested_autorun_stop_two_dependents(env):
 
@@ -336,7 +341,6 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     def autorun3(comp):
         results['autorun3'].append(is_v_prime.value)
 
-
     assert results == dict(autorun=[], autorun2=[], autorun3=[])
     v = reactive.Value(1)
     is_v_prime = reactive.Value(autorun)
@@ -346,7 +350,7 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     assert results == dict(autorun=[1], autorun2=[True], autorun3=[])
     comp2 = t.reactive(autorun3)
     assert results == dict(autorun=[1], autorun2=[True], autorun3=[True])
-    assert is_v_prime.value == True
+    assert is_v_prime.value is True
 
     assert len(v._dep._dependents) == 1
     assert len(is_v_prime._dep._dependents) == 2
@@ -361,7 +365,7 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
 
     assert results == dict(autorun=[1, 4], autorun2=[True],
                            autorun3=[True, False])
-    assert is_v_prime.value == False
+    assert is_v_prime.value is False
 
     comp2.stop()
 
@@ -414,10 +418,10 @@ def test_value_no_tracker_active(env):
         return all(v1.value)
     v2 = reactive.Value(f)
 
-    assert v2.value == False
+    assert v2.value is False
     v1.value = (True, True)
     env.wait_for_flush()
-    assert v2.value == True
+    assert v2.value is True
 
 def test_value_undefined(env):
 
