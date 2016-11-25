@@ -410,6 +410,7 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
                            autorun3=[True, False, True, False])
     assert is_v_prime._comp.invalidated is True
 
+
 def test_value_no_tracker_active(env):
 
     v1 = reactive.Value((False, True))
@@ -422,6 +423,7 @@ def test_value_no_tracker_active(env):
     v1.value = (True, True)
     env.wait_for_flush()
     assert v2.value is True
+
 
 def test_value_undefined(env):
 

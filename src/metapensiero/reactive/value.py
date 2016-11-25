@@ -47,7 +47,7 @@ class Value(object):
         self._dep = t.dependency()
 
     def _init_descriptor_environment(self):
-        """There's no way to distinguis between description and simple
+        """There's no way to distinguish between description and simple
         generator mode, so the initialization of the necessary
         per-instance mappings is done at the first __get__
         execution.
