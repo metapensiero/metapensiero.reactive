@@ -67,7 +67,7 @@ class Value(object):
         if self._tracker.active:
             dep = self._get_member('dep', instance)
             if dep is undefined or dep is None:
-                dep =  self._tracker.dependency()
+                dep = self._tracker.dependency()
                 self._set_member('dep', dep, instance)
             dep.depend()
         value = self._get_member('value', instance)

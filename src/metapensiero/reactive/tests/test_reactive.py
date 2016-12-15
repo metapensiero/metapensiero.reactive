@@ -9,6 +9,7 @@ import pytest
 
 from metapensiero import reactive
 
+
 def test_computation_invalidation(env):
     t = env.tracker
     dep = t.dependency()
@@ -38,7 +39,8 @@ def test_computation_invalidation(env):
     assert len(dep._dependents) == 1
     dep.changed()
     env.wait_for_flush()
-    assert results == dict(autorun=["A sample V", "A sample V"], comp_invalidate=True)
+    assert results == dict(autorun=["A sample V", "A sample V"],
+                           comp_invalidate=True)
     assert comp.invalidated is False
     assert t.active is False
     assert t.current_computation is None

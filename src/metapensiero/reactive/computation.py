@@ -193,6 +193,7 @@ class _Wrapper(object):
             del self.computations[instance]
             comp.stop()
 
+
 def computation(method_or_tracker):
     """A decorator that helps using computations directly in class
     bodies. Returns a property descriptor that returns a callable to

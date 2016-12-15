@@ -25,9 +25,11 @@ class Dependency(object):
             result = False
         else:
             computation = computation or self._tracker.current_computation
-            if not computation in self._dependents:
+            if computation not in self._dependents:
                 self._dependents.add(computation)
-                computation.on_invalidate.connect(self._on_computation_invalidate)
+                computation.on_invalidate.connect(
+                    self._on_computation_invalidate
+                )
                 result = True
             else:
                 result = False

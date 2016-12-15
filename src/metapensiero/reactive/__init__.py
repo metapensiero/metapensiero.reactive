@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULTS = dict(flusher_factory=None, tracker_instance=None)
 
+
 def get_flusher_factory():
     """Get the registered flusher factory or default to
     BaseFlushManager.
@@ -21,11 +22,13 @@ def get_flusher_factory():
     global DEFAULTS
     ff = DEFAULTS.get('flusher_factory')
     if ff is None:
-        DEFAULTS['flusher_factory'] = ff =  BaseFlushManager
+        DEFAULTS['flusher_factory'] = ff = BaseFlushManager
     return ff
+
 
 def set_flusher_factory(ff):
     DEFAULTS['flusher_factory'] = ff
+
 
 def get_tracker():
     """Get the default tracker instance or create one. If the registered
@@ -41,6 +44,7 @@ def get_tracker():
         ti = Tracker(flusher_factory=ff)
         DEFAULTS['tracker_instance'] = ti
     return ti
+
 
 def set_tracker(tracker_or_factory):
     DEFAULTS['tracker_instance'] = tracker_or_factory

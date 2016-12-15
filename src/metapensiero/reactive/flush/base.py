@@ -61,7 +61,9 @@ class BaseFlushManager(object):
                 self._run_flush()
             else:
                 if self._tracker.in_compute:
-                    self._tracker.on_after_compute.connect(self._schedule_flush_after_compute)
+                    self._tracker.on_after_compute.connect(
+                        self._schedule_flush_after_compute
+                    )
                 else:
                     self._schedule_flush()
 
