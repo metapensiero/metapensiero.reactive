@@ -78,13 +78,12 @@ class Computation(object):
         self._tracker._computations.add(self)
         errored = False
         try:
-            self._compute()
+            self._compute(first_run=True)
         except:
             errored = True
             logger.exception("Error while runnning computation")
             raise
         finally:
-            self.first_run = False
             if errored:
                 self.stop()
 
@@ -119,8 +118,9 @@ class Computation(object):
     def _needs_recompute(self):
         return self.invalidated and not self.stopped
 
-    def _compute(self):
+    def _compute(self, first_run=False):
         """Run the computation and reset the invalidation"""
+        self.first_run = first_run
         self.invalidated = False
         with self._tracker.while_compute(self):
             self._func(self)
