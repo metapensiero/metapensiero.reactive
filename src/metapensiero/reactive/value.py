@@ -118,9 +118,9 @@ class Value(object):
     def _trigger_generator(self, instance=None):
         if self._generator:
             tracker = self._tracker
-            func = functools.partial(self._auto, instance, self._generator)
             comp = self._get_member('comp', instance)
             if comp is undefined or comp is None:
+                func = functools.partial(self._auto, instance, self._generator)
                 comp = tracker.reactive(func, with_parent=False)
                 comp.guard = functools.partial(
                     self._comp_recompute_guard, instance
