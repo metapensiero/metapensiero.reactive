@@ -40,9 +40,18 @@ class Tracker(object):
         self.in_compute = False
         """Flag that is True when a Computation is... calculating"""
 
+
     @property
     def active(self):
         return self.current_computation is not None
+
+    @property
+    def loop(self):
+        """This is only needed in Python3, for the signal machinery. try to follow the
+        flusher on the value. The flusher may be an asyncio-enabled one that
+        has this detail set already.
+        """
+        return getattr(self.flusher, 'loop', None)
 
     @contextlib.contextmanager
     def no_suspend(self):
