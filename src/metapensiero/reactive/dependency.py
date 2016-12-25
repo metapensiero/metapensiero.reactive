@@ -31,6 +31,7 @@ class Dependency(object):
             computation = computation or self._tracker.current_computation
             if computation not in self._dependents:
                 self._dependents.add(computation)
+                computation.add_dependency(self)
                 computation.on_invalidate.connect(
                     self._on_computation_invalidate
                 )
@@ -48,7 +49,7 @@ class Dependency(object):
         deps = self._dependents
         if len(deps) > 0:
             for comp in list(deps):
-                comp.invalidate()
+                comp.invalidate(self)
             self._tracker.flusher.require_flush()
 
     @property
