@@ -16,9 +16,13 @@ logger = logging.getLogger(__name__)
 
 class Dependency(object):
 
-    def __init__(self, tracker):
+    source = None
+    """The source of a dependency, if any"""
+
+    def __init__(self, tracker, source=None):
         self._tracker = tracker
         self._dependents = set()
+        self._source = source
 
     def __call__(self, computation=None):
         if not (computation or self._tracker.active):
@@ -50,3 +54,7 @@ class Dependency(object):
     @property
     def has_dependents(self):
         return len(self._dependents) > 0
+
+    @property
+    def source(self):
+        return self._source

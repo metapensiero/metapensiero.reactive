@@ -103,8 +103,8 @@ class Tracker(object):
     def flush(self):
         self.flusher.require_flush(immediate=True)
 
-    def dependency(self):
-        return Dependency(self)
+    def dependency(self, source=None):
+        return Dependency(self, source)
 
     @contextlib.contextmanager
     def suspend_computation(self):
