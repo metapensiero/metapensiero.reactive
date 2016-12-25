@@ -20,14 +20,12 @@ logger = logging.getLogger(__name__)
 
 
 @six.add_metaclass(signal.SignalAndHandlerInitMeta)
-class Computation(object):
-    """A computation is an object runs a function and re-runs it again
-    when is invalidated, it does so until it is stopped. It injects
-    itself as the first argument to the function being run.
-    """
+class BaseComputation(object):
 
-    on_error = signal.Signal()
-    """A signal that is notified when a computation results in an error."""
+    invalidated = False
+    """If it's invalidated, it needs re-computing"""
+    stopped = False
+    """Is this computation completely disabled"""
 
     @signal.Signal
     def on_invalidate(self, subscribers, notify):
@@ -53,29 +51,87 @@ class Computation(object):
         else:
             connect(handler)
 
-    def __init__(self, tracker, parent, func, on_error=None):
-        self.invalidated = False
-        """If it's invalidated, it needs re-computing"""
-        self.first_run = True
-        """Is this computation the first?"""
-        self.stopped = False
-        """Is this computation completely disabled"""
+    def __init__(self, tracker, parent=None):
         self._tracker = tracker
         """The associated Tracker"""
-        self._func = func
-        """the function to execute"""
+        self._tracker._computations.add(self)
         self._parent = parent
         """The parent computation"""
+
+    def __repr__(self):
+        return '<{}.{} for {} at {}>'.format(self.__module__,
+                                             self.__class__.__name__,
+                                             repr(self._func),
+                                             id(self))
+
+    @property
+    def _needs_recompute(self):
+        return self.invalidated and not self.stopped
+
+    def _notify(self, signal, fnotify):
+        try:
+            with self._tracker.no_suspend():
+                fnotify(self)
+        finally:
+            signal.clear()
+
+    def _on_parent_invalidated(self, parent):
+        """Handler that runs when a parent is invalidated. Currently it stops
+        this computation.
+        """
+        self.stop()
+
+    def add_dependency(self, dependency):
+        """Optional method called by the dependencies that are collected. It does
+        nothing here. A subclass may find useful to collect them.
+        """
+        pass
+
+    def invalidate(self, dependency=None):
+        """Invalidate the current state of this computation"""
+        self.invalidated = True
+
+    def suspend(self):
+        """Context manager to suspend tracking"""
+        return self._tracker.supsend_computation()
+
+    def stop(self):
+        """Cease to re-run the computation function when invalidated and
+        remove this instance from the pool of active computations.
+        """
+        if not self.stopped:
+            self.stopped = True
+            self.invalidate()
+            self._tracker._computations.remove(self)
+            self._func = None
+            self._tracker = None
+
+
+class Computation(BaseComputation):
+    """A computation is an object runs a function and re-runs it again
+    when is invalidated, it does so until it is stopped. It injects
+    itself as the first argument to the function being run.
+    """
+    first_run = False
+    """Is this computation the first?"""
+
+    guard = None
+    """A callable that is called when invalidation triggers. It the result
+       is False, then the computation will not be added to the
+       to-be-recomputed list in the flusher."""
+
+    on_error = signal.Signal()
+    """A signal that is notified when a computation results in an error."""
+
+    def __init__(self, tracker, parent, func, on_error=None):
+        super(Computation, self).__init__(tracker, parent)
+        self.first_run = True
+        self._func = func
+        """the function to execute"""
         self._recomputing = False
         """True when a computation is re-running"""
-        self.guard = None
-        """A callable that is called when invalidation triggers. It the result
-        is False, then the computation will not be added to the
-        to-be-recomputed list in the flusher."""
         if on_error:
             self.on_error.connect(on_error)
-
-        self._tracker._computations.add(self)
         errored = False
         try:
             self._compute(first_run=True)
@@ -89,34 +145,6 @@ class Computation(object):
 
         if not self.stopped and parent:
             parent.on_invalidate.connect(self._on_parent_invalidated)
-
-    def _notify(self, signal, fnotify):
-        try:
-            with self._tracker.no_suspend():
-                fnotify(self)
-        finally:
-            signal.clear()
-
-    def invalidate(self):
-        """Invalidate the current state of this computation"""
-        guard = self.guard
-        if guard and self._parent:
-            raise ReactiveError("The guard cannot be used with parent")
-        elif guard:
-            recomputing_allowed = self.guard(self)
-        else:
-            recomputing_allowed = True
-        if (not (self.invalidated or guard)) or (guard and recomputing_allowed):
-            if not (self._recomputing or self.stopped):
-                flusher = self._tracker.flusher
-                flusher.add_computation(self)
-            self.on_invalidate.notify()
-
-        self.invalidated = True
-
-    @property
-    def _needs_recompute(self):
-        return self.invalidated and not self.stopped
 
     def _compute(self, first_run=False):
         """Run the computation and reset the invalidation"""
@@ -140,33 +168,22 @@ class Computation(object):
             finally:
                 self._recomputing = False
 
-    def stop(self):
-        """Cease to re-run the computation function when invalidated and
-        remove this instance from the pool of active computations.
-        """
-        if not self.stopped:
-            self.stopped = True
-            self.invalidate()
-            self._tracker._computations.remove(self)
-            self._func = None
-            self._tracker = None
+    def invalidate(self, dependency=None):
+        """Invalidate the current state of this computation"""
+        guard = self.guard
+        if guard and self._parent:
+            raise ReactiveError("The guard cannot be used with parent")
+        elif guard:
+            recomputing_allowed = self.guard(self)
+        else:
+            recomputing_allowed = True
+        if (not (self.invalidated or guard)) or (guard and recomputing_allowed):
+            if not (self._recomputing or self.stopped):
+                flusher = self._tracker.flusher
+                flusher.add_computation(self)
 
-    def _on_parent_invalidated(self, parent):
-        """Handler that runs when a parent is invalidated. Currently it stops
-        this computation.
-        """
-        self.stop()
-
-    def __repr__(self):
-        return '<{}.{} for {} at {}>'.format(self.__module__,
-                                             self.__class__.__name__,
-                                             repr(self._func),
-                                             id(self))
-
-    def suspend(self):
-        """Context manager to suspend tracking"""
-        return self._tracker.supsend_computation()
-
+            self.on_invalidate.notify()
+        super(Computation, self).invalidate(dependency)
 
 class _Wrapper(object):
     """A small class to help wrapping methods and to keep computations"""
