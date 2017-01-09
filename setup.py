@@ -53,7 +53,8 @@ setup(
        ],
     keywords='reactive functional dataflow asyncio gevent',
 
-    packages=find_packages('src'),
+    packages=['metapensiero.' + package
+              for package in find_packages('src/metapensiero')],
     package_dir={'': 'src'},
     namespace_packages=['metapensiero'],
 
