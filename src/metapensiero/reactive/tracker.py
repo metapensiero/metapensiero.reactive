@@ -23,10 +23,13 @@ logger = logging.getLogger(__name__)
 
 @six.add_metaclass(signal.SignalAndHandlerInitMeta)
 class Tracker(object):
+    """The manager of the dependency tracking process."""
 
     FLUSHER_FACTORY = None
+    """Member containing the default flusher class"""
 
     on_after_compute = signal.Signal()
+    """Signal emitted at the end of a computation."""
 
     def __init__(self, flusher_factory=None):
         self._computations = set()
@@ -43,6 +46,7 @@ class Tracker(object):
 
     @property
     def active(self):
+        """Flag that is True when a computation is in progress"""
         return self.current_computation is not None
 
     @property
@@ -56,7 +60,7 @@ class Tracker(object):
     @contextlib.contextmanager
     def no_suspend(self):
         """Mark an operation non interruptable by task management systems like
-        gevent or asyncio"""
+        gevent or asyncio."""
         try:
             self.non_suspendable = True
             logger.debug('non_interruptable begins')
@@ -67,6 +71,7 @@ class Tracker(object):
 
     @contextlib.contextmanager
     def while_compute(self, computation):
+        """Context manager to help manage the current computation."""
         try:
             old_computation = self.current_computation
             self.current_computation = computation
@@ -82,6 +87,16 @@ class Tracker(object):
             self.on_after_compute.subscribers.clear()
 
     def reactive(self, func, on_error=None, with_parent=True):
+        """Wrap the provided function inside an `Computation` instance and track
+        its execution.
+
+        :param func: the function to be computed.
+        :param on_error: an optional callback that will be called if an
+          error is raised during computation.
+        :param with_parent: optional flag. If ``False`` do not track parent
+          computation.
+        :returns: an instance of `Computation`
+        """
         if with_parent:
             cc = self.current_computation
         else:

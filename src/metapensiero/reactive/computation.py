@@ -186,6 +186,7 @@ class Computation(BaseComputation):
             self.on_invalidate.notify()
         super(Computation, self).invalidate(dependency)
 
+
 class _Wrapper(object):
     """A small class to help wrapping methods and to keep computations"""
 

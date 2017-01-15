@@ -26,6 +26,23 @@ undefined = object()
 class Value(object):
     """A simple reactive value container to demonstrate how all this
     package works.
+
+    It works as a single value container or as a class descriptor or as a
+    function or method decorator.
+
+    When used as a single value container, the value can be get/set using its
+    ``value`` member or by calling the `Value` instance itself, passing a
+    parameter will set its value.
+
+    When used as a class descriptor it can be used like normal instance value
+    member.
+
+    When used as a function or method decorator, it will use the
+    function/method to calculate its value and will work as a single value
+    container in the case of function decoration and like a normal instance
+    value member in the case of method decoration.
+
+    When a Value's value is accessed, a dependency is triggered.
     """
 
     def __init__(self, generator=undefined,  initial_value=undefined,
@@ -187,5 +204,7 @@ class Value(object):
         self.stop(instance)
 
     def _comp_recompute_guard(self, instance, comp):
+        """Compute guard to halt recalculation if the value of a certain instance has
+        no dependent computations."""
         dep = self._get_member('dep', instance)
         return dep and (dep is not undefined) and dep.has_dependents
