@@ -29,7 +29,7 @@ class Value(object):
     """
 
     def __init__(self, generator=undefined,  initial_value=undefined,
-                 equal=None):
+                 equal=None, always_recompute=False):
         self._equal = equal or operator.eq
         self._tracker = t = get_tracker()
         self._descriptor_initialized = False
@@ -45,6 +45,7 @@ class Value(object):
             self._value = initial_value
         self._comp = None
         self._dep = t.dependency()
+        self._always_recompute = always_recompute
 
     def _init_descriptor_environment(self):
         """There's no way to distinguish between description and simple
@@ -122,9 +123,10 @@ class Value(object):
             if comp is undefined or comp is None:
                 func = functools.partial(self._auto, instance, self._generator)
                 comp = tracker.reactive(func, with_parent=False)
-                comp.guard = functools.partial(
-                    self._comp_recompute_guard, instance
-                )
+                if not self._always_recompute:
+                    comp.guard = functools.partial(
+                        self._comp_recompute_guard, instance
+                    )
                 self._set_member('comp', comp, instance)
             if comp.invalidated:
                 comp._recompute()
