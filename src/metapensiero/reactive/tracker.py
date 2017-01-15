@@ -14,7 +14,7 @@ import logging
 
 from metapensiero import signal
 
-from .computation import Computation
+from .computation import AsyncComputation, Computation, undefined
 from .dependency import Dependency
 from .exception import ReactiveError
 
@@ -87,6 +87,30 @@ class Tracker(object):
         else:
             cc = None
         comp = Computation(self, cc, func, on_error)
+        return comp
+
+    def async_reactive(self, func, on_error=None, with_parent=True, equal=None,
+                       initial_value=undefined):
+        """Wrap the provided function inside an `AsyncComputation` instance and track
+        its execution.
+
+        :param func: the function to be computed.
+        :param on_error: an optional callback that will be called if an
+          error is raised during computation.
+        :param with_parent: optional flag. If ``False`` do not track parent
+          computation.
+        :param equal: an optional equality comparison function to be used
+          instead of the default `operator.eq`
+        :param initial_value: an optional initial value. By default it is a
+          marker value called ``undefined``, that will be replaced with the
+          first calculated value without generating any item.
+        :returns: an instance of `AsyncComputation`
+        """
+        if with_parent:
+            cc = self.current_computation
+        else:
+            cc = None
+        comp = AsyncComputation(self, cc, func, on_error, equal, initial_value)
         return comp
 
     def on_invalidate(self, func):
