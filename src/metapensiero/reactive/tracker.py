@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# :Project:  metapensiero.reactive -- reactivity tracker
-# :Created:    mar 26 gen 2016 18:11:11 CET
+# :Project:   metapensiero.reactive -- reactivity tracker
+# :Created:   mar 26 gen 2016 18:11:11 CET
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
+# :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
 from __future__ import unicode_literals, absolute_import
@@ -18,6 +19,7 @@ from .computation import AsyncComputation, Computation, undefined
 from .dependency import Dependency
 from .exception import ReactiveError
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +28,7 @@ class Tracker(object):
     """The manager of the dependency tracking process."""
 
     FLUSHER_FACTORY = None
-    """Member containing the default flusher class"""
+    """Member containing the default flusher class."""
 
     on_after_compute = signal.Signal()
     """Signal emitted at the end of a computation."""
@@ -34,26 +36,26 @@ class Tracker(object):
     def __init__(self, flusher_factory=None):
         self._computations = set()
         self.non_suspendable = False
-        """Flag that is True when running an operation that should not be
-        suspended (by something like asyncio or gevent)"""
+        """Flag that is ``True`` when running an operation that should not be
+        suspended (by something like asyncio or gevent)."""
         self.current_computation = None
-        """Contains the current computation while in_compute is True"""
+        """Contains the current computation while in_compute is ``True``."""
         flusher_factory = flusher_factory or self.FLUSHER_FACTORY
         self.flusher = flusher_factory(self)
         self.in_compute = False
-        """Flag that is True when a Computation is... calculating"""
+        """Flag that is ``True`` when a Computation is... calculating."""
 
 
     @property
     def active(self):
-        """Flag that is True when a computation is in progress"""
+        """Flag that is ``True`` when a computation is in progress."""
         return self.current_computation is not None
 
     @property
     def loop(self):
-        """This is only needed in Python3, for the signal machinery. try to follow the
-        flusher on the value. The flusher may be an asyncio-enabled one that
-        has this detail set already.
+        """This is only needed in Python3, for the signal machinery.
+        Try to follow the flusher on the value. The flusher may be an
+        asyncio-enabled one that has this detail set already.
         """
         return getattr(self.flusher, 'loop', None)
 
@@ -87,15 +89,15 @@ class Tracker(object):
             self.on_after_compute.subscribers.clear()
 
     def reactive(self, func, on_error=None, with_parent=True):
-        """Wrap the provided function inside an `Computation` instance and track
-        its execution.
+        """Wrap the provided function inside an `Computation` instance and
+        track its execution.
 
-        :param func: the function to be computed.
+        :param func: the function to be computed
         :param on_error: an optional callback that will be called if an
-          error is raised during computation.
+          error is raised during computation
         :param with_parent: optional flag. If ``False`` do not track parent
-          computation.
-        :returns: an instance of `Computation`
+          computation
+        :returns: an instance of :class:`~.computation.Computation`
         """
         if with_parent:
             cc = self.current_computation
@@ -106,20 +108,21 @@ class Tracker(object):
 
     def async_reactive(self, func, on_error=None, with_parent=True, equal=None,
                        initial_value=undefined):
-        """Wrap the provided function inside an `AsyncComputation` instance and track
-        its execution.
+        """Wrap the provided function inside an
+        :class:`~.computation.AsyncComputation` instance and track its
+        execution.
 
-        :param func: the function to be computed.
+        :param func: the function to be computed
         :param on_error: an optional callback that will be called if an
-          error is raised during computation.
+          error is raised during computation
         :param with_parent: optional flag. If ``False`` do not track parent
-          computation.
+          computation
         :param equal: an optional equality comparison function to be used
           instead of the default `operator.eq`
         :param initial_value: an optional initial value. By default it is a
           marker value called ``undefined``, that will be replaced with the
-          first calculated value without generating any item.
-        :returns: an instance of `AsyncComputation`
+          first calculated value without generating any item
+        :returns: an instance of :class:`~.computation.AsyncComputation`
         """
         if with_parent:
             cc = self.current_computation

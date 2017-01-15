@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# :Project:  metapensiero.reactive -- computation object
-# :Created:    mar 26 gen 2016 18:13:41 CET
+# :Project:   metapensiero.reactive -- computation object
+# :Created:   mar 26 gen 2016 18:13:41 CET
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
+# :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
 from __future__ import unicode_literals, absolute_import
@@ -25,6 +26,7 @@ class BaseComputation(object):
 
     invalidated = False
     """If it's invalidated, it needs re-computing"""
+
     stopped = False
     """Is this computation completely disabled"""
 
@@ -83,8 +85,8 @@ class BaseComputation(object):
         self.stop()
 
     def add_dependency(self, dependency):
-        """Optional method called by the dependencies that are collected. It does
-        nothing here. A subclass may find useful to collect them.
+        """Optional method called by the dependencies that are collected. It
+        does nothing here. A subclass may find useful to collect them.
         """
         pass
 
@@ -113,13 +115,15 @@ class Computation(BaseComputation):
     when is invalidated, it does so until it is stopped. It injects
     itself as the first argument to the function being run.
     """
+
     first_run = False
     """Is this computation the first?"""
 
     guard = None
-    """A callable that is called when invalidation triggers. It the result
-       is False, then the computation will not be added to the
-       to-be-recomputed list in the flusher."""
+    """A callable that is called when invalidation triggers. It the result is
+    ``False``, then the computation will not be added to the to-be-recomputed
+    list in the flusher.
+    """
 
     on_error = signal.Signal()
     """A signal that is notified when a computation results in an error."""
@@ -148,14 +152,14 @@ class Computation(BaseComputation):
             parent.on_invalidate.connect(self._on_parent_invalidated)
 
     def _compute(self, first_run=False):
-        """Run the computation and reset the invalidation"""
+        """Run the computation and reset the invalidation."""
         self.first_run = first_run
         self.invalidated = False
         with self._tracker.while_compute(self):
             self._func(self)
 
     def _recompute(self):
-        """Re-run the compute function and handle errors"""
+        """Re-run the compute function and handle errors."""
         if self._needs_recompute:
             try:
                 self._recomputing = True
@@ -170,7 +174,7 @@ class Computation(BaseComputation):
                 self._recomputing = False
 
     def invalidate(self, dependency=None):
-        """Invalidate the current state of this computation"""
+        """Invalidate the current state of this computation."""
         guard = self.guard
         if guard and self._parent:
             raise ReactiveError("The guard cannot be used with parent")
@@ -178,7 +182,7 @@ class Computation(BaseComputation):
             recomputing_allowed = self.guard(self)
         else:
             recomputing_allowed = True
-        if (not (self.invalidated or guard)) or (guard and recomputing_allowed):
+        if not (self.invalidated or guard) or (guard and recomputing_allowed):
             if not (self._recomputing or self.stopped):
                 flusher = self._tracker.flusher
                 flusher.add_computation(self)
@@ -188,7 +192,7 @@ class Computation(BaseComputation):
 
 
 class _Wrapper(object):
-    """A small class to help wrapping methods and to keep computations"""
+    """A small class to help wrapping methods and to keep computations."""
 
     def __init__(self, wrapped, tracker):
         self.tracker = tracker
@@ -265,27 +269,27 @@ undefined = object()
 
 
 class AsyncComputation(Computation):
-    """A "streaming" version of a normal computation.
+    """A *streaming* version of a normal computation.
 
-    To create an instance of this class call the `Tracker.async_reactive`
-    method.
+    To create an instance of this class call the
+    :meth:`.tracker.Tracker.async_reactive` method.
 
-    As in normal computations, the computing function is then executed each
-    time any of the dependency it collected changes.
+    As in normal computations, the computing function is executed each time
+    any of the dependency it collected changes.
 
     But, differently from the normal computation where half of the work of the
-    computed function is to create "side effects" somewhere else, here the
+    computed function is to create *side effects* somewhere else, here the
     computed function is required to return some value.
 
-    This value is then stored by the computation as the ``current_value``
-    member, it is compared with the initial or previous value and made
+    This value is then stored by the computation as the `current_value`
+    attribute, it is compared with the initial or previous value and made
     available using either the *async iterator* or the *async context manager*
     protocols.
 
     Using the former protocol the caller (the calling ``async for`` cycle)
     will receive any new value different from the previous.
 
-    The latter protocol togheter with the ``initial_value`` parameter can be
+    The latter protocol together with the `initial_value` parameter can be
     used to obtain a trigger and block of code can be executed only after a
     certain condition expressed by the computing function is met.
     """
@@ -294,14 +298,14 @@ class AsyncComputation(Computation):
     def __init__(self, tracker, parent, func, on_error=None, equal=None,
                  initial_value=undefined):
         """
-        :param tracker: an instance of `Tracker` that is managing the
-          computing process.
-        :param parent: a possible parent computation owning this.
-        :param func: the function to be computed.
+        :param tracker: an instance of :class:`~.tracker.Tracker` that is
+          managing the computing process
+        :param parent: a possible parent computation owning this
+        :param func: the function to be computed
         :param on_error: an optional callback that will be called if an
-          error is raised during computation.
+          error is raised during computation
         :param equal: an optional equality comparison function to be used
-          instead of the default `operator.eq`
+          instead of the default ``operator.eq``
         :param initial_value: an optional initial value. By default it is a
           marker value called ``undefined``, that will be replaced with the
           first calculated value without generating any item.
@@ -314,7 +318,7 @@ class AsyncComputation(Computation):
         super().__init__(tracker, parent, func, on_error)
 
     async def __aenter__(self):
-        """If this computation is consumed by an ``async with:`` statement, the
+        """If this computation is consumed by an ``async with`` statement, the
         computation is considered a one-time trigger."""
         async for el in self:
             return self

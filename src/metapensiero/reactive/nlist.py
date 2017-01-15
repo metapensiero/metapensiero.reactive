@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# :Project:  metapensiero.reactive -- namedlist subclass
-# :Created:    mer 03 feb 2016 14:55:20 CET
+# :Project:   metapensiero.reactive -- namedlist subclass
+# :Created:   mer 03 feb 2016 14:55:20 CET
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
+# :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
 from __future__ import unicode_literals, absolute_import
@@ -12,6 +13,7 @@ import operator
 import namedlist
 
 from . import get_tracker
+
 
 undefined = object()
 
@@ -51,6 +53,7 @@ class ReactiveNamedListMixin(object):
 
     def _field_eq(self, old, new):
         return operator.eq(old, new)
+
 
 def reactivenamedlist(name, *args, **kwargs):
     nlist = namedlist.namedlist('_nl_' + name, *args, **kwargs)

@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-# :Project:  metapensiero.reactive -- dependency class
-# :Created:    mar 26 gen 2016 18:15:10 CET
+# :Project:   metapensiero.reactive -- dependency class
+# :Created:   mar 26 gen 2016 18:15:10 CET
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
+# :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
 from __future__ import unicode_literals, absolute_import
 
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 class Dependency(object):
 
     source = None
-    """The source of a dependency, if any"""
+    """The source of a dependency, if any."""
 
     def __init__(self, tracker, source=None):
         self._tracker = tracker
