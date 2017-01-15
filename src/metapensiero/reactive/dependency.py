@@ -7,8 +7,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import six
-
 import logging
 
 logger = logging.getLogger(__name__)
