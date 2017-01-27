@@ -263,6 +263,7 @@ def computation(method_or_tracker):
 
 
 undefined = object()
+"Marker instance used for unspecified or missing values."
 
 
 class AsyncComputation(Computation):

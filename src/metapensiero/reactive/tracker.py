@@ -40,7 +40,6 @@ class Tracker(metaclass=signal.SignalAndHandlerInitMeta):
         self.in_compute = False
         """Flag that is ``True`` when a Computation is... calculating."""
 
-
     @property
     def active(self):
         """Flag that is ``True`` when a computation is in progress."""
@@ -114,9 +113,9 @@ class Tracker(metaclass=signal.SignalAndHandlerInitMeta):
           computation
         :param equal: an optional equality comparison function to be used
           instead of the default `operator.eq`
-        :param initial_value: an optional initial value. By default it is a
-          marker value called ``undefined``, that will be replaced with the
-          first calculated value without generating any item
+        :param initial_value: an optional initial value, by default
+          :data:`~.computation.undefined`, a marker value that will be
+          replaced with the first calculated value without generating any item
         :returns: an instance of :class:`~.computation.AsyncComputation`
         """
         if with_parent:
