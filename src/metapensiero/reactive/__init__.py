@@ -15,7 +15,7 @@ DEFAULTS = dict(flusher_factory=None, tracker_instance=None)
 
 def get_flusher_factory():
     """Get the registered flusher factory or default to
-    BaseFlushManager.
+    :class:`~.flush.base.BaseFlushManager`.
     """
     global DEFAULTS
     ff = DEFAULTS.get('flusher_factory')
