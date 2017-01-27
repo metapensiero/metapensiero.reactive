@@ -29,6 +29,12 @@ class Dependency(object):
         self._source = source
 
     def __call__(self, computation=None):
+        """Used to declare the dependency of a computation on an instance of this
+        class. The dependency can be explicit by passing in a `Computation`
+        instance or better it can be implicit, which is the usual way. When in
+        implicit mode, the dependency finds the running computation by asking
+        the `Tracker`.
+        """
         if not (computation or self._tracker.active):
             result = False
         else:
@@ -55,6 +61,11 @@ class Dependency(object):
         self.change()
 
     def changed(self):
+        """This is called to declare that value/state/object that this instance
+        rephresents has changed. It will notify every computation that was
+        calculating when was called `depend` on it.
+        It will also notify any handler connected to its `on_change` Signal.
+        """
         deps = self._dependents
         self.on_change.notify(self)
         if len(deps) > 0:
@@ -70,10 +81,12 @@ class Dependency(object):
 
     @property
     def has_dependents(self):
+        """True if this dependency has any computation that depends on it."""
         return len(self._dependents) > 0
 
     @property
     def source(self):
+        """Return a possible connected object."""
         return self._source
 
     def unfollow(self, *others):
