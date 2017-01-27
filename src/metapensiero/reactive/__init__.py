@@ -55,3 +55,4 @@ from .value import Value
 from .flush import BaseFlushManager
 from .nlist import reactivenamedlist as namedlist
 from .computation import BaseComputation, Computation, computation
+from .dict import ReactiveDict
