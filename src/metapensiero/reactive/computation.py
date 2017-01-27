@@ -6,14 +6,11 @@
 # :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
-from __future__ import unicode_literals, absolute_import
-
 import functools
 import logging
 import operator
 import weakref
 
-import six
 from metapensiero import signal
 
 from .exception import ReactiveError
@@ -21,8 +18,7 @@ from .exception import ReactiveError
 logger = logging.getLogger(__name__)
 
 
-@six.add_metaclass(signal.SignalAndHandlerInitMeta)
-class BaseComputation(object):
+class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     invalidated = False
     """If it's invalidated, it needs re-computing"""
@@ -129,7 +125,7 @@ class Computation(BaseComputation):
     """A signal that is notified when a computation results in an error."""
 
     def __init__(self, tracker, parent, func, on_error=None):
-        super(Computation, self).__init__(tracker, parent)
+        super().__init__(tracker, parent)
         self.first_run = True
         self._func = func
         """the function to execute"""
@@ -191,7 +187,7 @@ class Computation(BaseComputation):
         super(Computation, self).invalidate(dependency)
 
 
-class _Wrapper(object):
+class _Wrapper:
     """A small class to help wrapping methods and to keep computations."""
 
     def __init__(self, wrapped, tracker):
