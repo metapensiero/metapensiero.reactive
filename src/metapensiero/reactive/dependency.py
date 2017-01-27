@@ -8,6 +8,8 @@
 
 from __future__ import unicode_literals, absolute_import
 
+from metapensiero import signal
+
 import logging
 
 
@@ -18,6 +20,8 @@ class Dependency(object):
 
     source = None
     """The source of a dependency, if any."""
+
+    on_change = signal.Signal()
 
     def __init__(self, tracker, source=None):
         self._tracker = tracker
@@ -45,12 +49,24 @@ class Dependency(object):
     def _on_computation_invalidate(self, computation):
         self._dependents.remove(computation)
 
+    def _on_change_handler(self, followed_dependency):
+        """Handler that will be called from following dependencies."""
+        assert isinstance(followed_dependency, Dependency)
+        self.change()
+
     def changed(self):
         deps = self._dependents
+        self.on_change.notify(self)
         if len(deps) > 0:
             for comp in list(deps):
                 comp.invalidate(self)
             self._tracker.flusher.require_flush()
+
+    def follow(self, *others):
+        """Follow the changed event of another dependency and change as well."""
+        for other in others:
+            assert isinstance(other, Dependency)
+            other.on_change.connect(self._on_change_handler)
 
     @property
     def has_dependents(self):
@@ -59,3 +75,9 @@ class Dependency(object):
     @property
     def source(self):
         return self._source
+
+    def unfollow(self, *others):
+        """Stop following another dependency."""
+        for other in others:
+            assert isinstance(other, Dependency)
+            other.disconnect(self._on_change_handler)
