@@ -23,9 +23,10 @@ undefined = object()
 
 class ReactiveContainerBase:
     """Base class for reactive containers. It initializes and exports three kind
-    of dependencies to track changes to either immutable values, reactive values
-    or changes in the structure. It also exposes an `all` member to track all of
-    them."""
+    of dependencies to track changes to either immutable values, reactive
+    values or changes in the structure. It also exposes an `all` member to
+    track all of them.
+    """
 
     def __init__(self, equal=None, tracker=None):
         self._tracker = tracker or get_tracker()

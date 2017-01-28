@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# :Project:  metapensiero.reactive -- tests
-# :Created:    mer 27 gen 2016 14:56:03 CET
-# :Author:    Alberto Berti <alberto@metapensiero.it>
-# :License:   GNU General Public License version 3 or later
+# :Project: metapensiero.reactive -- tests
+# :Created: mer 27 gen 2016 14:56:03 CET
+# :Author:  Alberto Berti <alberto@metapensiero.it>
+# :License: GNU General Public License version 3 or later
 #
 
 import pytest
