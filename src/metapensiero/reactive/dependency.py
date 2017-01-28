@@ -55,7 +55,7 @@ class Dependency(metaclass=signal.SignalAndHandlerInitMeta):
     def _on_change_handler(self, followed_dependency):
         """Handler that will be called from following dependencies."""
         assert isinstance(followed_dependency, Dependency)
-        self.change()
+        self.changed()
 
     def changed(self):
         """This is called to declare that value/state/object that this instance
@@ -90,4 +90,4 @@ class Dependency(metaclass=signal.SignalAndHandlerInitMeta):
         """Stop following another dependency."""
         for other in others:
             assert isinstance(other, Dependency)
-            other.disconnect(self._on_change_handler)
+            other.on_change.disconnect(self._on_change_handler)

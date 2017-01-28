@@ -20,7 +20,7 @@ def get_flusher_factory():
     global DEFAULTS
     ff = DEFAULTS.get('flusher_factory')
     if ff is None:
-        DEFAULTS['flusher_factory'] = ff = BaseFlushManager
+        DEFAULTS['flusher_factory'] = ff = AsyncioFlushManager
     return ff
 
 
@@ -50,7 +50,7 @@ def set_tracker(tracker_or_factory):
 
 from .tracker import Tracker
 from .value import Value
-from .flush import BaseFlushManager
+from .flush import AsyncioFlushManager
 from .nlist import reactivenamedlist as namedlist
 from .computation import BaseComputation, Computation, computation
 from .dict import ReactiveDict

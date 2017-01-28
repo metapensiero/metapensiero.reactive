@@ -29,7 +29,7 @@ class ReactiveContainerBase:
 
     def __init__(self, equal=None, tracker=None):
         self._tracker = tracker or get_tracker()
-        self._equal or operator.eq
+        self._equal = equal or operator.eq
         self._all_reactives = Dependency(self._tracker)
         self._all_immutables = Dependency(self._tracker)
         self._all_values = Dependency(self._tracker)
@@ -43,8 +43,9 @@ class ReactiveContainerBase:
 
     def _follow_reactive(self, rvalue, stop=False):
         """Follow the events of another reactive container. Or stop following if the
-        `stop` parameter is ``True``."""
-        assert isinstance(rvalue, ReactiveBase), \
+        `stop` parameter is ``True``.
+        """
+        assert isinstance(rvalue, ReactiveContainerBase), \
             "Containers must be reactive"
         if stop:
             mname = 'unfollow'
@@ -102,7 +103,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         else:
             oldv = undefined
         super().__delitem__(key)
-        self._change(oldv, undefined)
+        self._change(key, oldv, undefined)
 
     def __getitem__(self, key):
         value = super().__getitem__(key)
@@ -135,20 +136,20 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         elif newv is undefined:
             # delete
             vdep = self._key_dependencies.pop(key)
+            vdep.changed()
+            self._structure.changed()
             if self._is_immutable(oldv):
                 self._all_immutables.unfollow(vdep)
             else:
                 self._follow_reactive(oldv, stop=True)
-            vdep.changed()
-            self._structure.changed()
         else:
             # change
             is_immu = self._is_immutable(newv)
             if oldv is newv or (is_immu and self._equal(oldv, newv)):
                 return
             was_immu = key in self._key_dependencies
-            was_reactive = isinstance(oldv, ReactiveBase)
-            is_reactive = isinstance(newv, ReactiveBase)
+            was_reactive = isinstance(oldv, ReactiveContainerBase)
+            is_reactive = isinstance(newv, ReactiveContainerBase)
 
             dep = self._key_dependencies[key]
             if was_reactive:

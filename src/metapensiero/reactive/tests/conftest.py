@@ -11,10 +11,9 @@ import pytest
 
 from metapensiero.reactive import set_tracker
 from metapensiero.reactive.tracker import Tracker
-from metapensiero.reactive.flush import BaseFlushManager
 from metapensiero.reactive.flush.asyncio import AsyncioFlushManager
 
-FLUSHER_FACTORIES = [BaseFlushManager, AsyncioFlushManager]
+FLUSHER_FACTORIES = [AsyncioFlushManager]
 
 
 class Environment(object):
@@ -28,6 +27,11 @@ class Environment(object):
         if self.tracker.flusher._flush_future:
             loop = asyncio.get_event_loop()
             loop.run_until_complete(self.tracker.flusher._flush_future)
+
+    def run_comp(self, func):
+        return self.tracker.reactive(func)
+
+
 @pytest.fixture(scope='function', params=FLUSHER_FACTORIES)
 def env(request):
     flush_factory = request.param
