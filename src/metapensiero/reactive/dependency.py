@@ -6,17 +6,14 @@
 # :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
-from __future__ import unicode_literals, absolute_import
-
 from metapensiero import signal
 
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 
-class Dependency(object):
+class Dependency(metaclass=signal.SignalAndHandlerInitMeta):
 
     source = None
     """The source of a dependency, if any."""

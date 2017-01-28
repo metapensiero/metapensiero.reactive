@@ -5,10 +5,6 @@
 # :License:   GNU General Public License version 3 or later
 #
 
-from __future__ import unicode_literals, absolute_import
-
-import six
-
 import logging
 
 import gevent

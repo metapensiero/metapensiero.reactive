@@ -6,10 +6,6 @@
 # :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
-from __future__ import unicode_literals, absolute_import
-
-import six
-
 import contextlib
 import logging
 
@@ -23,8 +19,7 @@ from .exception import ReactiveError
 logger = logging.getLogger(__name__)
 
 
-@six.add_metaclass(signal.SignalAndHandlerInitMeta)
-class Tracker(object):
+class Tracker(metaclass=signal.SignalAndHandlerInitMeta):
     """The manager of the dependency tracking process."""
 
     FLUSHER_FACTORY = None

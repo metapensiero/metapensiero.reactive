@@ -5,10 +5,6 @@
 # :License:   GNU General Public License version 3 or later
 #
 
-from __future__ import unicode_literals, absolute_import
-
-import six
-
 import functools
 import logging
 import operator
@@ -23,7 +19,7 @@ logger = logging.getLogger(__name__)
 undefined = object()
 
 
-class Value(object):
+class Value:
     """A simple reactive value container to demonstrate how all this
     package works.
 

@@ -5,10 +5,6 @@
 # :License:   GNU General Public License version 3 or later
 #
 
-from __future__ import unicode_literals, absolute_import
-
-import six
-
 import logging
 import collections
 
@@ -20,8 +16,7 @@ from ..computation import Computation
 logger = logging.getLogger(__name__)
 
 
-@six.add_metaclass(signal.SignalAndHandlerInitMeta)
-class BaseFlushManager(object):
+class BaseFlushManager(metaclass=signal.SignalAndHandlerInitMeta):
 
     on_before_flush = signal.Signal()
     """A signal that will notify just before the flush operation

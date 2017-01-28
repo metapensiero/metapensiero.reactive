@@ -20,12 +20,9 @@ with open(os.path.join(here, 'CHANGES.rst'), encoding='utf-8') as f:
 with open(os.path.join(here, 'version.txt'), encoding='utf-8') as f:
     VERSION = f.read().strip()
 
-PY2 = sys.version_info[:1] == (2,)
-
 TESTS_REQUIREMENTS = ['pytest']
 
-if PY2:
-    TESTS_REQUIREMENTS.append('gevent')
+#TESTS_REQUIREMENTS.append('gevent')
 
 setup(
     name="metapensiero.reactive",
@@ -42,10 +39,7 @@ setup(
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Intended Audience :: Developers",
@@ -60,7 +54,6 @@ setup(
 
     install_requires=['setuptools',
                       'metapensiero.signal>=0.7',
-                      'six',
                       'namedlist'],
     extras_require={'dev': ['metapensiero.tool.bump_version', 'docutils']},
     setup_requires=['pytest-runner'],

@@ -5,27 +5,17 @@
 # :License:   GNU General Public License version 3 or later
 #
 
+import asyncio
+
 import pytest
-import six
 
 from metapensiero.reactive import set_tracker
 from metapensiero.reactive.tracker import Tracker
 from metapensiero.reactive.flush import BaseFlushManager
+from metapensiero.reactive.flush.asyncio import AsyncioFlushManager
 
-FLUSHER_FACTORIES = [BaseFlushManager]
+FLUSHER_FACTORIES = [BaseFlushManager, AsyncioFlushManager]
 
-if six.PY3:
-    import asyncio
-    from metapensiero.reactive.flush.asyncio import AsyncioFlushManager
-    FLUSHER_FACTORIES.append(AsyncioFlushManager)
-    gevent = None
-    GeventFlushManager = None
-else:
-    AsyncioFlushManager = None
-    asyncio = None
-    import gevent
-    from metapensiero.reactive.flush.gevent import GeventFlushManager
-    FLUSHER_FACTORIES.append(GeventFlushManager)
 
 class Environment(object):
 
@@ -35,17 +25,9 @@ class Environment(object):
         set_tracker(self.tracker)
 
     def wait_for_flush(self):
-        if self.ff is BaseFlushManager:
-            pass
-        elif six.PY2 and self.ff is GeventFlushManager:
-            if self.tracker.flusher._flush_greenlet is not None:
-                gevent.joinall([self.tracker.flusher._flush_greenlet])
-        elif six.PY3 and self.ff is AsyncioFlushManager:
-            if self.tracker.flusher._flush_future:
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(self.tracker.flusher._flush_future)
-
-    
+        if self.tracker.flusher._flush_future:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.tracker.flusher._flush_future)
 @pytest.fixture(scope='function', params=FLUSHER_FACTORIES)
 def env(request):
     flush_factory = request.param
