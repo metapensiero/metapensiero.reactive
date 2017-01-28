@@ -42,6 +42,7 @@ class BaseFlushManager(metaclass=signal.SignalAndHandlerInitMeta):
         the next scheduled flush"""
         self._will_flush = False
         """Marker that is True when a flush operation is scheduled"""
+        self._flush_requested = False
 
     def add_computation(self, comp):
         assert (isinstance(comp, Computation) and
@@ -70,7 +71,13 @@ class BaseFlushManager(metaclass=signal.SignalAndHandlerInitMeta):
         like asyncio or gevent is available. This implementation
         just executes '_run_flush' directly.
         """
-        self._run_flush()
+        if self._in_flush:
+            self._flush_requested = True
+        else:
+            self._run_flush()
+            if self._flush_requested:
+                self._run_flush()
+                self._flush_requested = False
 
     def _run_flush(self):
         if self._in_flush:
