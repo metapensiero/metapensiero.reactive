@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# :Project: metapensiero.reactive -- tests
-# :Created: mer 27 gen 2016 14:56:03 CET
-# :Author:  Alberto Berti <alberto@metapensiero.it>
-# :License: GNU General Public License version 3 or later
+# :Project:   metapensiero.reactive -- tests
+# :Created:   mer 27 gen 2016 14:56:03 CET
+# :Author:    Alberto Berti <alberto@metapensiero.it>
+# :License:   GNU General Public License version 3 or later
+# :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
 import pytest
@@ -127,6 +128,7 @@ def test_reactivenamedlist(env):
     env.wait_for_flush()
     assert results == [(10, 15), (20, 15), (20, 25)]
 
+
 def test_reactive_property(env):
 
     t = env.tracker
@@ -171,6 +173,7 @@ def test_reactive_property(env):
     env.wait_for_flush()
     assert results == dict(ext_autorun=[True, False],
                            int_autorun=[True, True, False])
+
 
 def test_value_with_nested_autorun(env):
 

@@ -3,7 +3,7 @@
 # :Created:   ven 27 gen 2017 02:32:41 CET
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
-# :Copyright: Copyright (C) 2016 Alberto Berti
+# :Copyright: Copyright (C) 2017 Alberto Berti
 #
 
 import abc
@@ -81,7 +81,6 @@ class ReactiveContainerBase:
     def structure(self):
         """Returns the dependecy that tracks the changes to the structure."""
         return self._all_structures
-
 
 
 class ReactiveDict(collections.UserDict, ReactiveContainerBase):
