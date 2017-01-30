@@ -6,12 +6,10 @@
 # :Copyright: Copyright (C) 2017 Alberto Berti
 #
 
-import abc
 import collections
 import logging
 import operator
 
-from .exception import ReactiveError
 from .dependency import Dependency
 from . import get_tracker
 
@@ -147,7 +145,6 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
             is_immu = self._is_immutable(newv)
             if oldv is newv or (is_immu and self._equal(oldv, newv)):
                 return
-            was_immu = key in self._key_dependencies
             was_reactive = isinstance(oldv, ReactiveContainerBase)
             is_reactive = isinstance(newv, ReactiveContainerBase)
 
