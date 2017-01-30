@@ -18,7 +18,7 @@ with open(os.path.join(here, 'CHANGES.rst'), encoding='utf-8') as f:
 with open(os.path.join(here, 'version.txt'), encoding='utf-8') as f:
     VERSION = f.read().strip()
 
-TESTS_REQUIREMENTS = ['pytest']
+TESTS_REQUIREMENTS = ['pytest', 'pytest-asyncio']
 
 #TESTS_REQUIREMENTS.append('gevent')
 
