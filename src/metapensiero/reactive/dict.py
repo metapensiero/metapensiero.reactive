@@ -106,6 +106,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
     def __getitem__(self, key):
         value = super().__getitem__(key)
         self._key_dependencies[key].depend()
+        return value
 
     def __iter__(self):
         self._structure.depend()

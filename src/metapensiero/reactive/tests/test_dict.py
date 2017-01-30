@@ -18,6 +18,7 @@ def test_dict_basic(env):
     imm = env.run_comp(lambda c: d.immutables.depend())
     foo_setter = env.run_comp(lambda c: d.__setitem__('foo', 'bar'))
     foo = env.run_comp(lambda c: d['foo'])
+    assert d['foo'] == 'bar'
     assert all.invalidated
     assert struct.invalidated
     assert imm.invalidated
@@ -51,6 +52,9 @@ def test_dict_basic(env):
     assert not foo_setter.invalidated
     assert not foo.invalidated
     del d['foo']
+    assert 'foo' not in d
+    with pytest.raises(KeyError):
+        d['foo']
     assert all.invalidated
     assert struct.invalidated
     assert imm.invalidated
