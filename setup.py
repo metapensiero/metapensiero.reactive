@@ -7,7 +7,6 @@
 #
 
 import os
-from codecs import open
 
 from setuptools import setup, find_packages
 
@@ -29,7 +28,7 @@ setup(
     url="https://github.com/azazel75/metapensiero.reactive",
 
     description="an unobtrusive and light reactive system",
-    long_description=README + u'\n\n' + CHANGES,
+    long_description=README + '\n\n' + CHANGES,
 
     author="Alberto Berti",
     author_email="alberto@metapensiero.it",
