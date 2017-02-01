@@ -27,8 +27,6 @@ class Dependency(metaclass=signal.SignalAndHandlerInitMeta):
         self._tracker = tracker
         self._dependents = set()
         self._source = source
-        self._change_fut = None
-        self._shift_changed_future()
 
     def __call__(self, computation=None):
         """Used to declare the dependency of a computation on an instance of this
@@ -54,16 +52,6 @@ class Dependency(metaclass=signal.SignalAndHandlerInitMeta):
 
     depend = __call__
 
-    async def __aiter__(self):
-        while True:
-            el = await self._change_fut
-            yield el
-
-    def _shift_changed_future(self, result=None):
-        if self._change_fut:
-            self._change_fut.resolve(result)
-        self._change_fut = self._tracker.loop.create_future()
-
     def _on_computation_invalidate(self, computation):
         self._dependents.remove(computation)
 
@@ -80,7 +68,6 @@ class Dependency(metaclass=signal.SignalAndHandlerInitMeta):
         """
         deps = self._dependents
         self.on_change.notify(self)
-        self._shift_changed_future(result)
         if len(deps) > 0:
             for comp in list(deps):
                 comp.invalidate(self)
