@@ -181,9 +181,9 @@ class Selector:
     def stopped(self):
         return len(self._sources) == 0
 
-DEPLETED_TOKEN = object()
+STOPPED_TOKEN = object()
 
-TEE_STATUS = enum.IntEnum('TeeStatus', 'INITIAL STARTED STOPPED DEPLETED ERROR')
+TEE_STATUS = enum.IntEnum('TeeStatus', 'INITIAL STARTED STOPPED CLOSED ERROR')
 TEE_MODE = enum.IntEnum('TeeMode', 'PULL PUSH')
 
 
@@ -195,21 +195,26 @@ class Tee:
     Tee object.
 
     Another feature is that this object will start consuming its source only
-    when consumers start iterating over and stops doing it as soon as it is
-    not consumed anymore. This is to lower the price in terms of task
-    switches.
+    when consumers start iterating over This is to lower the price in terms of
+    task switches.
 
     It can also work in 'push' mode, where it doesn't iterates over any source
     but any value is passed in using the `push` method and the Tee is
     permanently stopped using the `close` method.
     """
 
-    def __init__(self, source=None, *, push_mode=False, loop=None):
+    def __init__(self, source=None, *, push_mode=False, loop=None,
+                 remove_none=False, await_send=False):
         """
         :param aiterable source: The object to async iterate. Can be an a
           direct async-iterable (which should implement an ``__aiter__``
           method) or a callable that should return an async-iterable.
         :param bool push_mode: True if the Tee should operate in push mode.
+          If it's a callable it will be used as an async callback.
+        :param bool remove_none: Remove occurring ``None`` values from the
+          stream.
+        :param bool await_send: Await the avaiability of a sent value before
+          consuming another value from the source.
         :param loop: The optional loop.
         :type loop: `asyncio.BaseEventLoop`
         """
@@ -222,6 +227,11 @@ class Tee:
         self._source = source
         self._queues = {}
         self._run_fut = None
+        self._send_queue = collections.deque()
+        self._send_cback = push_mode
+        self._send_avail = asyncio.Event(loop=self.loop)
+        self._remove_none = remove_none
+        self._await_send = await_send
 
     def __aiter__(self):
         next_value_avail, queue = self._add_queue()
@@ -238,7 +248,8 @@ class Tee:
         """Sent to the queues a marker value that means that ther will be no more
         values after that.
         """
-        self._push(DEPLETED_TOKEN)
+        self._push(STOPPED_TOKEN)
+        self._send_queue.clear()
 
     async def _del_queue(self, ev):
         """Remove a queue, called by the generator instance that is driven by a
@@ -269,43 +280,61 @@ class Tee:
             else:
                 assert callable(self._source)
                 source = self._source()
-            async for el in source:
-                if len(self._queues) == 0:
-                    self._status = TEE_STATUS.STOPPED
-                    break
+            send_value = None
+            while True:
+                el = await source.asend(send_value)
                 self._push(el)
-            else:
-                self._status = TEE_STATUS.DEPLETED
+                if self._await_send:
+                    await self._send_avail.wait()
+                if len(self._send_queue) > 0:
+                    send_value = self._send_queue.popleft()
+                    if self._await_send and len(self._send_queue) == 0:
+                        self._send_avail.clear()
+                else:
+                    send_value = None
+        except StopAsyncIteration:
+            self._status = TEE_STATUS.STOPPED
         except asyncio.CancelledError:
             raise
         except Exception as e:
             self.push(e)
-            self._status = TEE_STATUS.ERROR
+            self._status = TEE_STATUS.STOPPED
         finally:
             self._cleanup()
+
+    async def _send(self, value):
+        """Send a value coming from one of the consumers."""
+        assert value is not None
+        if self._mode == TEE_MODE.PUSH and callable(self._send_cback):
+            await self._send_cback(value)
+        else:
+            self._send_queue.append(value)
+            self._send_avail.set()
 
     def close(self):
         """Close a started tee and mark it as depleted, used in ``push`` mode."""
         assert self._status == TEE_STATUS.STARTED
-        self._status = TEE_STATUS.DEPLETED
+        self._status = TEE_STATUS.CLOSED
         self._cleanup()
 
     async def gen(self, next_value_avail, queue):
         """An async generator instantiated per consumer."""
         if self._status in [TEE_STATUS.INITIAL, TEE_STATUS.STOPPED]:
             self.run()
-        elif self._status == TEE_STATUS.DEPLETED and len(queue) == 0:
+        elif self._status == TEE_STATUS.CLOSED and len(queue) == 0:
             return
         try:
             while await next_value_avail.wait():
                 if len(queue):
                     v = queue.popleft()
-                    if v == DEPLETED_TOKEN:
+                    if v == STOPPED_TOKEN:
                         break
                     elif isinstance(v, Exception):
                         raise v
                     else:
-                        yield v
+                        sent_value = yield v
+                    if sent_value is not None:
+                        await self._send(sent_value)
                 else:
                     next_value_avail.clear()
         finally:
@@ -314,7 +343,12 @@ class Tee:
     def push(self, value):
         """Public api to push a value."""
         assert self._status == TEE_STATUS.STARTED
-        self._push(value)
+        if self._remove_none:
+            if value is not None:
+                self._push(value)
+        else:
+            self._push(value)
+
 
     def run(self):
         """Starts the source-consuming task."""

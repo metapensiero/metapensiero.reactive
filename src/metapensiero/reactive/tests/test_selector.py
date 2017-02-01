@@ -71,33 +71,6 @@ async def test_tee(event_loop):
                 a = 1/0
             await asyncio.sleep(delay)
 
-    class Gen:
-
-        def __init__(self, count, func, delay, initial_delay=None,
-                     gen_exc=False):
-            self.count = count
-            self.func = func
-            self.delay = delay
-            self.initial_delay = initial_delay
-            self.gen_exc = gen_exc
-            self.ix = 0
-
-        def __aiter__(self):
-            return self
-
-        async def __anext__(self):
-            if self.ix == 0 and self.initial_delay:
-                await asyncio.sleep(self.initial_delay)
-            elif self.ix + 1 == self.count:
-                raise StopAsyncIteration()
-            elif self.gen_exc and self.ix > self.count/2:
-                a = 1/0
-            await asyncio.sleep(self.delay)
-            v = self.func(self.ix)
-            self.ix += 1
-            return v
-
-
     tee = Tee(partial(gen, 10, lambda i: i, 0.1))
     ch1 = tee.__aiter__()
     ch2 = tee.__aiter__()
@@ -106,69 +79,57 @@ async def test_tee(event_loop):
 
     assert len(data1) == len(data2) == 10
     assert len(tee._queues) == 0
-    assert tee._status == TEE_STATUS.DEPLETED
-
-    # in this round use a resumable source
-
-    tee = Tee(Gen(10, lambda i: i, 0.1))
-    ch1 = tee.__aiter__()
-    ch2 = tee.__aiter__()
-    data1 = []
-    data2 = []
-    async for e in ch1:
-        if e >= 5:
-            break
-        else:
-            data1.append(e)
-    # emulate gc action
-    try:
-        await ch1.aclose()
-    except GeneratorExit:
-        pass
-    async for e in ch2:
-        if e >= 5:
-            break
-        else:
-            data2.append(e)
-    # emulate gc action
-    try:
-        await ch2.aclose()
-    except GeneratorExit:
-        pass
-
-    assert len(data1) == len(data2) == 5
-    assert data1 == data2
-    assert len(tee._queues) == 0
     assert tee._status == TEE_STATUS.STOPPED
 
-    # resumed operation
     ch1 = tee.__aiter__()
     ch2 = tee.__aiter__()
     data1 = [e async for e in ch1]
     data2 = [e async for e in ch2]
 
-    # one value gets lost in the for cycles above, one on the internal tee
-    # workhorse
+    assert len(data1) == len(data2) == 10
 
-    assert len(data1) == len(data2) == 3
-    assert data1 == data2
-    assert len(tee._queues) == 0
-    assert tee._status == TEE_STATUS.DEPLETED
-
-    ch1 = tee.__aiter__()
-    ch2 = tee.__aiter__()
-    data1 = [e async for e in ch1]
-    data2 = [e async for e in ch2]
-
-    assert len(data1) == len(data2) == 0
-
-    tee = Tee(Gen(10, lambda i: i, 0.1, gen_exc=True))
+    tee = Tee(gen(10, lambda i: i, 0.1, gen_exc=True))
     ch1 = tee.__aiter__()
     ch2 = tee.__aiter__()
     with pytest.raises(ZeroDivisionError):
         data1 = [e async for e in ch1]
     with pytest.raises(ZeroDivisionError):
         data2 = [e async for e in ch2]
+
+@pytest.mark.asyncio
+async def test_tee_send(event_loop):
+
+    async def echo_gen():
+        v = yield 'initial'
+        while v != 'done':
+            v = yield v
+
+    tee = Tee(echo_gen, remove_none=True, await_send=True)
+    ch1 = tee.__aiter__()
+    ch2 = tee.__aiter__()
+
+    # setup
+    v1 = await ch1.asend(None)
+    v2 = await ch2.asend(None)
+
+    assert v1 == v2 == 'initial'
+
+    data1 = []
+    data2 = []
+    data1.append(await ch1.asend(1))
+    data2.append(await ch2.asend('a'))
+    data1.append(await ch1.asend('done'))
+    data2.append(await ch2.asend('done'))
+
+    with pytest.raises(StopAsyncIteration):
+        data1.append(await ch1.asend(None))
+    with pytest.raises(StopAsyncIteration):
+        data1.append(await ch2.asend(None))
+
+    assert data1 == data2 == [1, 'a']
+
+    assert tee._status == TEE_STATUS.STOPPED
+
 
 @pytest.mark.asyncio
 async def test_tee_push_mode(event_loop):
@@ -186,7 +147,7 @@ async def test_tee_push_mode(event_loop):
 
     assert len(data1) == len(data2) == 2
     assert data1 == data2 == ['a', 'b']
-    assert tee._status == TEE_STATUS.DEPLETED
+    assert tee._status == TEE_STATUS.CLOSED
 
     tee = Tee(push_mode=True)
     ch1 = tee.__aiter__()
@@ -201,3 +162,29 @@ async def test_tee_push_mode(event_loop):
         data1 = [e async for e in ch1]
     with pytest.raises(ZeroDivisionError):
         data2 = [e async for e in ch2]
+
+    sent_values = []
+
+    async def sent(value):
+        sent_values.append(value)
+
+    tee = Tee(push_mode=sent)
+    ch1 = tee.__aiter__()
+    ch2 = tee.__aiter__()
+
+    tee.push('a')
+    v1 = await ch1.asend(None)
+    v2 = await ch2.asend(None)
+
+    assert v1 == v2 == 'a'
+
+    data1 = []
+    data2 = []
+    tee.push('b')
+    data1.append(await ch1.asend(1))
+    data2.append(await ch2.asend('c'))
+
+
+    assert data1 == data2 == ['b']
+    assert sent_values == [1, 'c']
+    tee.close()
