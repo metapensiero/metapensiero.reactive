@@ -8,6 +8,7 @@
 
 import asyncio
 import collections
+import enum
 import functools
 from metapensiero import signal
 
@@ -179,3 +180,152 @@ class Selector:
     @property
     def stopped(self):
         return len(self._sources) == 0
+
+DEPLETED_TOKEN = object()
+
+TEE_STATUS = enum.IntEnum('TeeStatus', 'INITIAL STARTED STOPPED DEPLETED ERROR')
+TEE_MODE = enum.IntEnum('TeeMode', 'PULL PUSH')
+
+
+class Tee:
+    """An object clones an asynchronous iterator. It is not meant to give each
+    consumer the same stream of values no matter when the consumer starts the
+    iteration like the tee in itertools. Here 'when' matters. Each consumer
+    will receive any value collected **after** it started iterating over the
+    Tee object.
+
+    Another feature is that this object will start consuming its source only
+    when consumers start iterating over and stops doing it as soon as it is
+    not consumed anymore. This is to lower the price in terms of task
+    switches.
+
+    It can also work in 'push' mode, where it doesn't iterates over any source
+    but any value is passed in using the `push` method and the Tee is
+    permanently stopped using the `close` method.
+    """
+
+    def __init__(self, source=None, *, push_mode=False, loop=None):
+        """
+        :param aiterable source: The object to async iterate. Can be an a
+          direct async-iterable (which should implement an ``__aiter__``
+          method) or a callable that should return an async-iterable.
+        :param bool push_mode: True if the Tee should operate in push mode.
+        :param loop: The optional loop.
+        :type loop: `asyncio.BaseEventLoop`
+        """
+        self.loop = loop or asyncio.get_event_loop()
+        self._mode = TEE_MODE.PUSH if push_mode else TEE_MODE.PULL
+        if self._mode == TEE_MODE.PULL:
+            self._status = TEE_STATUS.INITIAL
+        else:
+            self._status = TEE_STATUS.STARTED
+        self._source = source
+        self._queues = {}
+        self._run_fut = None
+
+    def __aiter__(self):
+        next_value_avail, queue = self._add_queue()
+        return self.gen(next_value_avail, queue)
+
+    def _add_queue(self):
+        """Add a queue to the group that will receive the incoming values"""
+        q = collections.deque()
+        e = asyncio.Event(loop=self.loop)
+        self._queues[e] = q
+        return e, q
+
+    def _cleanup(self):
+        """Sent to the queues a marker value that means that ther will be no more
+        values after that.
+        """
+        self._push(DEPLETED_TOKEN)
+
+    async def _del_queue(self, ev):
+        """Remove a queue, called by the generator instance that is driven by a
+        consumer when it gets garbage collected. Also, if there are no more
+        queues to fill, halt the source consuming task.
+        """
+        queue = self._queues.pop(ev)
+        queue.clear()
+        if len(self._queues) == 0:
+            if self._run_fut and self._run_fut.cancel():
+                try:
+                    await self._run_fut
+                except asyncio.CancelledError:
+                    self._status = TEE_STATUS.STOPPED
+
+    def _push(self, element):
+        """Push a new value into the queues and signal that a value is waiting."""
+        for event, queue in self._queues.items():
+            queue.append(element)
+            event.set()
+
+    async def _run(self):
+        """Private coroutine that consumes the source."""
+        self._status = TEE_STATUS.STARTED
+        try:
+            if hasattr(self._source, '__aiter__'):
+                source = self._source.__aiter__()
+            else:
+                assert callable(self._source)
+                source = self._source()
+            async for el in source:
+                if len(self._queues) == 0:
+                    self._status = TEE_STATUS.STOPPED
+                    break
+                self._push(el)
+            else:
+                self._status = TEE_STATUS.DEPLETED
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            self.push(e)
+            self._status = TEE_STATUS.ERROR
+        finally:
+            self._cleanup()
+
+    def close(self):
+        """Close a started tee and mark it as depleted, used in ``push`` mode."""
+        assert self._status == TEE_STATUS.STARTED
+        self._status = TEE_STATUS.DEPLETED
+        self._cleanup()
+
+    async def gen(self, next_value_avail, queue):
+        """An async generator instantiated per consumer."""
+        if self._status in [TEE_STATUS.INITIAL, TEE_STATUS.STOPPED]:
+            self.run()
+        elif self._status == TEE_STATUS.DEPLETED and len(queue) == 0:
+            return
+        try:
+            while await next_value_avail.wait():
+                if len(queue):
+                    v = queue.popleft()
+                    if v == DEPLETED_TOKEN:
+                        break
+                    elif isinstance(v, Exception):
+                        raise v
+                    else:
+                        yield v
+                else:
+                    next_value_avail.clear()
+        finally:
+            await self._del_queue(next_value_avail)
+
+    def push(self, value):
+        """Public api to push a value."""
+        assert self._status == TEE_STATUS.STARTED
+        self._push(value)
+
+    def run(self):
+        """Starts the source-consuming task."""
+        assert self._source is not None
+        self._run_fut = asyncio.ensure_future(self._run(), loop=self.loop)
+
+    @property
+    def source(self):
+        return self._source
+
+    @source.setter
+    def source(self, value):
+        assert self._source is None and self._mode == TEE_MODE.PULL
+        self._source = value
