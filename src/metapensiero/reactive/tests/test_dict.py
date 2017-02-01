@@ -60,3 +60,10 @@ def test_dict_basic(env):
     assert imm.invalidated
     assert not foo_setter.invalidated
     assert foo.invalidated
+
+    # teardown
+    all.stop()
+    struct.stop()
+    imm.stop()
+    foo_setter.stop()
+    foo.stop()
