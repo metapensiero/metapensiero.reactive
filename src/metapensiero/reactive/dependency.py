@@ -115,7 +115,6 @@ class Selector:
 
     def _future_handler(self, source, agen, future):
         """When one of the awaited futures is done, this gets executed"""
-        self._waiting_futures.pop(future)
         if self._push(source, future):
             self._wait_on(source, agen)
 
