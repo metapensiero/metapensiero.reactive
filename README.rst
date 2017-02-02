@@ -241,12 +241,6 @@ To run the tests you should run the following at the package root::
 
   python setup.py test
 
-To test both ``gevent`` with Python 2.7 and ``asyncio`` with Python
-3.5, run::
-
-  pip install tox
-  tox
-
 Build status
 ------------
 
