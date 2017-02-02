@@ -10,9 +10,10 @@ import asyncio
 import collections
 import enum
 import functools
+import logging
+
 from metapensiero import signal
 
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -97,11 +98,9 @@ class Dependency(metaclass=signal.SignalAndHandlerInitMeta):
             other.on_change.disconnect(self._on_change_handler)
 
 
-
 class Selector:
-    """An object that accepts multiple async iterables and 'unifies' them. It is
+    """An object that accepts multiple async iterables and *unifies* them. It is
     itself an async iterable."""
-
 
     def __init__(self, *sources, loop=None):
         self.loop = loop or asyncio.get_event_loop()
@@ -115,17 +114,17 @@ class Selector:
         return self.gen()
 
     def _future_handler(self, source, agen, future):
-        """When one of the awaited futures is done, this gets executed"""
+        """When one of the awaited futures is done, this gets executed."""
         if self._push(source, future):
             self._wait_on(source, agen)
 
     def _push(self, source, done_future):
         """Check the result of the future. If the exception is an instance of
-        'StopAsyncIteration' it means that the corresponding source is
+        ``StopAsyncIteration`` it means that the corresponding source is
         exhausted.
 
         The exception is not raised here because it will be swallowed. Instead
-        it is raised on the gen() function.
+        it is raised on the :meth:`gen` method.
         """
         exc = done_future.exception()
         if isinstance(exc, StopAsyncIteration):
@@ -158,7 +157,7 @@ class Selector:
         self._setup_waiter(source, agen, next)
 
     def add(self, source):
-        """Add a new source to the group of those followed"""
+        """Add a new source to the group of those followed."""
         if source not in self._sources:
             self._sources.add(source)
 
@@ -181,6 +180,7 @@ class Selector:
     def stopped(self):
         return len(self._sources) == 0
 
+
 STOPPED_TOKEN = object()
 
 TEE_STATUS = enum.IntEnum('TeeStatus', 'INITIAL STARTED STOPPED CLOSED ERROR')
@@ -190,34 +190,33 @@ TEE_MODE = enum.IntEnum('TeeMode', 'PULL PUSH')
 class Tee:
     """An object clones an asynchronous iterator. It is not meant to give each
     consumer the same stream of values no matter when the consumer starts the
-    iteration like the tee in itertools. Here 'when' matters. Each consumer
+    iteration like the tee in itertools. Here *when* matters: each consumer
     will receive any value collected **after** it started iterating over the
     Tee object.
 
     Another feature is that this object will start consuming its source only
-    when consumers start iterating over This is to lower the price in terms of
+    when consumers start iterating over. This is to lower the price in terms of
     task switches.
 
-    It can also work in 'push' mode, where it doesn't iterates over any source
-    but any value is passed in using the `push` method and the Tee is
-    permanently stopped using the `close` method.
+    It can also work in *push* mode, where it doesn't iterates over any source
+    but any value is passed in using the :meth:`push` method and the Tee is
+    permanently stopped using the :meth:`close` method.
+
+    :param aiterable source: The object to async iterate. Can be a
+      direct async-iterable (which should implement an ``__aiter__``
+      method) or a callable that should return an async-iterable.
+    :param bool push_mode: ``True`` if the Tee should operate in push mode.
+      If it's a callable it will be used as an async callback.
+    :param bool remove_none: Remove occurring ``None`` values from the
+      stream.
+    :param bool await_send: Await the availability of a sent value before
+      consuming another value from the source.
+    :param loop: The optional loop.
+    :type loop: `asyncio.BaseEventLoop`
     """
 
     def __init__(self, source=None, *, push_mode=False, loop=None,
                  remove_none=False, await_send=False):
-        """
-        :param aiterable source: The object to async iterate. Can be an a
-          direct async-iterable (which should implement an ``__aiter__``
-          method) or a callable that should return an async-iterable.
-        :param bool push_mode: True if the Tee should operate in push mode.
-          If it's a callable it will be used as an async callback.
-        :param bool remove_none: Remove occurring ``None`` values from the
-          stream.
-        :param bool await_send: Await the avaiability of a sent value before
-          consuming another value from the source.
-        :param loop: The optional loop.
-        :type loop: `asyncio.BaseEventLoop`
-        """
         self.loop = loop or asyncio.get_event_loop()
         self._mode = TEE_MODE.PUSH if push_mode else TEE_MODE.PULL
         if self._mode == TEE_MODE.PULL:
@@ -238,7 +237,7 @@ class Tee:
         return self.gen(next_value_avail, queue)
 
     def _add_queue(self):
-        """Add a queue to the group that will receive the incoming values"""
+        """Add a queue to the group that will receive the incoming values."""
         q = collections.deque()
         e = asyncio.Event(loop=self.loop)
         self._queues[e] = q
@@ -348,7 +347,6 @@ class Tee:
                 self._push(value)
         else:
             self._push(value)
-
 
     def run(self):
         """Starts the source-consuming task."""
