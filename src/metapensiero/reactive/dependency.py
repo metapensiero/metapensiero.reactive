@@ -139,7 +139,8 @@ class Selector:
         if all_stopped:
             self._push(STOPPED_TOKEN)
 
-    async def _iterate_source(self, source, agen, send_value_avail=None, queue=None):
+    async def _iterate_source(self, source, agen, send_value_avail=None,
+                              queue=None):
         self._source_status(source, SELECTOR_STATUS.STARTED)
         send_capable = queue is not None
         send_value = None
@@ -187,8 +188,6 @@ class Selector:
             self._result_avail.set()
 
     def _run(self):
-        self._results.clear()
-        self._result_avail.clear()
         for s in self._sources:
             self._start_source_loop(s)
         self._status = SELECTOR_STATUS.STARTED
@@ -198,7 +197,7 @@ class Selector:
         for sd in self._source_data.values():
             queue = sd['queue']
             event = sd['send_event']
-            if queue:
+            if queue is not None:
                 queue.append(value)
                 event.set()
 
@@ -219,7 +218,7 @@ class Selector:
         is_new = source not in self._source_data
         self._source_status(source, SELECTOR_STATUS.INITIAL)
         if is_new:
-            send_capable = hasattr(agen, 'asend') and inspect.isawaitable(agen.asend)
+            send_capable = hasattr(agen, 'asend')
             self._source_data[source]['send_capable'] = send_capable
             if send_capable:
                 queue = collections.deque()
@@ -245,6 +244,8 @@ class Selector:
                 with suppress(asyncio.CancelledError):
                     await data['task']
         self._gen = None
+        self._results.clear()
+        self._result_avail.clear()
         self._status = SELECTOR_STATUS.STOPPED
 
     def add(self, source):

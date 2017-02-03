@@ -14,17 +14,24 @@ import pytest
 from metapensiero.reactive.dependency import Selector, Tee, TEE_STATUS
 
 
+async def gen(count, func, delay, initial_delay=None, gen_exc=False):
+    if initial_delay:
+        await asyncio.sleep(initial_delay)
+    for i in range(count):
+        yield func(i)
+        if gen_exc and i > count/2:
+            a = 1/0
+        await asyncio.sleep(delay)
+
+
+async def echo_gen():
+    v = yield 'initial'
+    while v != 'done':
+        v = yield v
+
+
 @pytest.mark.asyncio
 async def test_selector(event_loop):
-
-    async def gen(count, func, delay, initial_delay=None, gen_exc=False):
-        if initial_delay:
-            await asyncio.sleep(initial_delay)
-        for i in range(count):
-            yield func(i)
-            if gen_exc and i > count/2:
-                a = 1/0
-            await asyncio.sleep(delay)
 
     # results = []
     # async for el in partial(gen, 10, lambda i: i, 0.1)():
@@ -48,6 +55,14 @@ async def test_selector(event_loop):
         results.append(el)
     assert len(results) == 20
 
+    # test generator restart
+
+    results = []
+    async for el in s:
+        results.append(el)
+    assert len(results) == 20
+
+
 
     s = Selector(
         partial(gen, 10, lambda i: i, 0.1),
@@ -59,17 +74,36 @@ async def test_selector(event_loop):
         async for el in s:
             results.append(el)
 
+
+@pytest.mark.asyncio
+async def test_selector_send(event_loop):
+
+    # use partial here just to differentiate the two sources
+    s = Selector(echo_gen, partial(echo_gen), remove_none=True, await_send=True)
+    ch = s.__aiter__()
+
+    # setup
+    v = await ch.asend(None)
+
+    assert v == 'initial'
+
+    data = []
+
+    data.append(await ch.asend(1))
+    data.append(await ch.asend('a'))
+    data.append(await ch.asend('done'))
+    data.append(await ch.asend(None))
+    data.append(await ch.asend(None))
+
+    with pytest.raises(StopAsyncIteration):
+        v = await ch.asend(None)
+        data.append(v)
+
+    assert data == ['initial', 1, 'a', 1, 'a']
+
+
 @pytest.mark.asyncio
 async def test_tee(event_loop):
-
-    async def gen(count, func, delay, initial_delay=None, gen_exc=False):
-        if initial_delay:
-            await asyncio.sleep(initial_delay)
-        for i in range(count):
-            yield func(i)
-            if gen_exc and i > count/2:
-                a = 1/0
-            await asyncio.sleep(delay)
 
     tee = Tee(partial(gen, 10, lambda i: i, 0.1))
     ch1 = tee.__aiter__()
@@ -96,13 +130,9 @@ async def test_tee(event_loop):
     with pytest.raises(ZeroDivisionError):
         data2 = [e async for e in ch2]
 
+
 @pytest.mark.asyncio
 async def test_tee_send(event_loop):
-
-    async def echo_gen():
-        v = yield 'initial'
-        while v != 'done':
-            v = yield v
 
     tee = Tee(echo_gen, remove_none=True, await_send=True)
     ch1 = tee.__aiter__()
