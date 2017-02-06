@@ -10,7 +10,7 @@ import collections
 import logging
 import operator
 
-from .dependency import Dependency
+from .dependency import EventDependency
 from . import get_tracker
 
 
@@ -29,13 +29,13 @@ class ReactiveContainerBase:
     def __init__(self, equal=None, tracker=None):
         self._tracker = tracker or get_tracker()
         self._equal = equal or operator.eq
-        self._all_reactives = Dependency(self._tracker)
-        self._all_immutables = Dependency(self._tracker)
-        self._all_values = Dependency(self._tracker)
+        self._all_reactives = EventDependency(self._tracker, self)
+        self._all_immutables = EventDependency(self._tracker, self)
+        self._all_values = EventDependency(self._tracker, self)
         self._all_values.follow(self._all_reactives, self._all_immutables)
-        self._structure = Dependency(self._tracker)
-        self._all_structures = Dependency(self._tracker)
-        self._all = Dependency(self._tracker)
+        self._structure = EventDependency(self._tracker, self)
+        self._all_structures = EventDependency(self._tracker)
+        self._all = EventDependency(self._tracker)
         self._all.follow(self._all_structures, self._all_reactives,
                          self._all_immutables)
         self._all_structures.follow(self._structure)
@@ -56,7 +56,11 @@ class ReactiveContainerBase:
                                   ('structure', '_all_structures')):
             local_dep = getattr(self, depname)
             follow_dep = getattr(rvalue, propname)
-            getattr(local_dep, mname)(follow_dep)
+            if stop:
+                getattr(local_dep, mname)(follow_dep)
+            else:
+                getattr(local_dep, mname)(follow_dep,
+                    ftrans=lambda sources, v:(sources + (self,), v))
 
     def _is_immutable(self, value):
         return isinstance(value, collections.abc.Hashable)
@@ -124,19 +128,20 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         """Analyze changed values and trigger changed events on dependencies."""
         if oldv is undefined:
             # add
-            vdep = Dependency(self._tracker)
+            vdep = EventDependency(self._tracker, key)
             self._key_dependencies[key] = vdep
             if self._is_immutable(newv):
-                self._all_immutables.follow(vdep)
+                self._all_immutables.follow(vdep,
+                    ftrans=lambda sources, v: (sources + (self,), v))
             else:
                 self._follow_reactive(newv)
             vdep.changed()
-            self._structure.changed()
+            self._structure.changed((operator.setitem, self, key, newv))
         elif newv is undefined:
             # delete
             vdep = self._key_dependencies.pop(key)
             vdep.changed()
-            self._structure.changed()
+            self._structure.changed((operator.delitem, self, key))
             if self._is_immutable(oldv):
                 self._all_immutables.unfollow(vdep)
             else:
@@ -154,7 +159,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
                 self._follow_reactive(oldv, stop=True)
             if is_reactive:
                 self._follow_reactive(newv)
-            dep.changed()
+            dep.changed(newv)
 
     def keys(self):
         self._structure.depend()

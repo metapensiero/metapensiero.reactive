@@ -6,10 +6,12 @@
 # :Copyright: Copyright (C) 2017 Alberto Berti
 #
 
+import asyncio
+
 import pytest
 
 from metapensiero import reactive
-
+from metapensiero.reactive.dependency import Sink
 
 def test_dict_basic(env):
     d = reactive.ReactiveDict()

@@ -5,8 +5,6 @@
 # :License:   GNU General Public License version 3 or later
 #
 
-import asyncio
-
 import pytest
 
 from metapensiero.reactive import set_tracker
@@ -18,21 +16,21 @@ FLUSHER_FACTORIES = [AsyncioFlushManager]
 
 class Environment(object):
 
-    def __init__(self, flush_factory):
+    def __init__(self, flush_factory, loop):
         self.ff = flush_factory
-        self.tracker = Tracker(flush_factory)
+        self.loop = loop
+        self.tracker = t = Tracker(flush_factory)
+        t.flusher.loop = loop
         set_tracker(self.tracker)
 
     def wait_for_flush(self):
         if self.tracker.flusher._flush_future:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self.tracker.flusher._flush_future)
+            self.loop.run_until_complete(self.tracker.flusher._flush_future)
 
     def run_comp(self, func):
         return self.tracker.reactive(func)
 
-
 @pytest.fixture(scope='function', params=FLUSHER_FACTORIES)
-def env(request):
+def env(request, event_loop):
     flush_factory = request.param
-    return Environment(flush_factory)
+    return Environment(flush_factory, event_loop)
