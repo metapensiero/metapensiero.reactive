@@ -7,6 +7,7 @@
 #
 
 import collections
+from functools import partial
 import logging
 import operator
 
@@ -29,18 +30,18 @@ class ReactiveContainerBase:
     def __init__(self, equal=None, tracker=None):
         self._tracker = tracker or get_tracker()
         self._equal = equal or operator.eq
-        self._all_reactives = EventDependency(self._tracker, self)
-        self._all_immutables = EventDependency(self._tracker, self)
-        self._all_values = EventDependency(self._tracker, self)
+        self._all_reactives = EventDependency(self._tracker)
+        self._all_immutables = EventDependency(self._tracker)
+        self._all_values = EventDependency(self._tracker)
         self._all_values.follow(self._all_reactives, self._all_immutables)
-        self._structure = EventDependency(self._tracker, self)
+        self._structure = EventDependency(self._tracker)
         self._all_structures = EventDependency(self._tracker)
         self._all = EventDependency(self._tracker)
         self._all.follow(self._all_structures, self._all_reactives,
                          self._all_immutables)
         self._all_structures.follow(self._structure)
 
-    def _follow_reactive(self, rvalue, stop=False):
+    def _follow_reactive(self, rvalue, key=None, stop=False):
         """Follow the events of another reactive container. Or stop following if the
         `stop` parameter is ``True``.
         """
@@ -60,7 +61,11 @@ class ReactiveContainerBase:
                 getattr(local_dep, mname)(follow_dep)
             else:
                 getattr(local_dep, mname)(follow_dep,
-                    ftrans=lambda sources, v:(sources + (self,), v))
+                    ftrans=partial(self._follow_transform, rvalue, key))
+
+    def _follow_transform(self, followed, key,  *changes):
+        change = (operator.setitem, (self, key, followed))
+        return (change, changes)
 
     def _is_immutable(self, value):
         return isinstance(value, collections.abc.Hashable)
@@ -72,9 +77,11 @@ class ReactiveContainerBase:
 
     @property
     def immutables(self):
-        """Returns the dependency that track the changes to all the immutable values."""
+        """Returns the dependency that track the changes to all the immutable
+        values."""
         return self._all_immutables
 
+    @property
     def reactives(self):
         """Returns a dependency that tracks all the reactive values."""
         return self._all_reactives
@@ -91,9 +98,9 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
     structure changes."""
 
     def __init__(self, *args, equal=None, tracker=None, **kwargs):
-        collections.UserDict.__init__(self, *args, **kwargs)
-        ReactiveContainerBase.__init__(self, equal, tracker)
         self._key_dependencies = {}
+        ReactiveContainerBase.__init__(self, equal, tracker)
+        collections.UserDict.__init__(self, *args, **kwargs)
 
     def __contains__(self, key):
         self._structure.depend()
@@ -128,20 +135,21 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         """Analyze changed values and trigger changed events on dependencies."""
         if oldv is undefined:
             # add
-            vdep = EventDependency(self._tracker, key)
+            vdep = EventDependency(self._tracker)
             self._key_dependencies[key] = vdep
             if self._is_immutable(newv):
-                self._all_immutables.follow(vdep,
-                    ftrans=lambda sources, v: (sources + (self,), v))
+                self._all_immutables.follow(vdep)
             else:
-                self._follow_reactive(newv)
-            vdep.changed()
-            self._structure.changed((operator.setitem, self, key, newv))
+                self._follow_reactive(newv, key)
+            change = (operator.setitem, (self, key, newv))
+            vdep.changed(*change)
+            self._structure.changed(*change)
         elif newv is undefined:
             # delete
             vdep = self._key_dependencies.pop(key)
-            vdep.changed()
-            self._structure.changed((operator.delitem, self, key))
+            change = (operator.delitem, (self, key))
+            vdep.changed(*change)
+            self._structure.changed(*change)
             if self._is_immutable(oldv):
                 self._all_immutables.unfollow(vdep)
             else:
@@ -159,7 +167,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
                 self._follow_reactive(oldv, stop=True)
             if is_reactive:
                 self._follow_reactive(newv)
-            dep.changed(newv)
+            dep.changed(operator.setitem, (self, key, newv))
 
     def keys(self):
         self._structure.depend()

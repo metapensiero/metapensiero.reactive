@@ -7,6 +7,7 @@
 #
 
 import asyncio
+import operator
 
 import pytest
 
@@ -16,6 +17,10 @@ from metapensiero.reactive.dependency import Sink
 def test_dict_basic(env):
     d = reactive.ReactiveDict()
     all = env.run_comp(lambda c: d.all.depend())
+    sink = d.all.sink()
+    sink.start()
+    struct_sink = d.structure.sink()
+    struct_sink.start()
     struct = env.run_comp(lambda c: d.structure.depend())
     imm = env.run_comp(lambda c: d.immutables.depend())
     foo_setter = env.run_comp(lambda c: d.__setitem__('foo', 'bar'))
@@ -62,6 +67,56 @@ def test_dict_basic(env):
     assert imm.invalidated
     assert not foo_setter.invalidated
     assert foo.invalidated
+
+    assert list(struct_sink) == [(operator.setitem, (d, 'foo', 'bar')),
+                                 (operator.delitem, (d, 'foo'))]
+    assert list(sink) == [(operator.setitem, (d, 'foo', 'bar')),
+                          (operator.setitem, (d, 'foo', 'bar')),
+                          (operator.setitem, (d, 'foo', 'zoo')),
+                          (operator.setitem, (d, 'foo', 'bar')),
+                          (operator.delitem, (d, 'foo')),
+                          (operator.delitem, (d, 'foo'))]
+
+    sink.data.clear()
+    struct_sink.data.clear()
+    o = reactive.ReactiveDict(pollo=2, polletto='a')
+    d['other'] = o
+    o['pollo'] = 20
+    o['zoo'] = 'b'
+
+    sink_res = [
+        (operator.setitem, (d, 'other', o)),
+
+        ((operator.setitem, (d, 'other', o)),
+         (operator.setitem, (o, 'pollo', 20))),
+
+        ((operator.setitem, (d, 'other', o)),
+         (operator.setitem, (o, 'zoo', 'b'))),
+
+        ((operator.setitem, (d, 'other', o)),
+         (operator.setitem, (o, 'zoo', 'b')))
+    ]
+
+    assert list(sink) == sink_res
+
+    assert list(struct_sink) == [
+        (operator.setitem, (d, 'other', o)),
+        ((operator.setitem, (d, 'other', o)),
+         (operator.setitem, (o, 'zoo', 'b')))]
+
+
+    sink.data.clear()
+    struct_sink.data.clear()
+    del d['other']
+
+    # further changes to 'o' do not affect the stream
+    o['pollo'] = 5
+
+    assert list(sink) == [
+        (operator.delitem, (d, 'other'))]
+
+    assert list(struct_sink) == [
+        (operator.delitem, (d, 'other'))]
 
     # teardown
     all.stop()

@@ -95,9 +95,9 @@ class FollowMixin:
 
     def changed(self, *values):
         super().changed()
-        if len(values) == 1 and self._source:
+        if len(values) == 1:
             values = values[0]
-        if self._source:
+        if self._source is not None:
             values = ((self._source,), values)
         self._dispatch(*values)
 
@@ -135,8 +135,11 @@ class EventDependency(FollowMixin, Dependency,
     def _on_followed_changes(self, followed, *changes):
         ftrans, cback = self._following[followed]
         if ftrans:
-            changed = ftrans(*changes)
+            changes = ftrans(*changes)
         self.changed(*changes)
+
+    def sink(self):
+        return EventSink(self)
 
 
 class StreamDependency(FollowMixin, Dependency):
@@ -171,6 +174,9 @@ class StreamDependency(FollowMixin, Dependency):
             return ftrans(*values)
         else:
             return value
+
+    def sink(self):
+        return Sink(self)
 
 
 SELECTOR_STATUS = enum.IntEnum('SelectorStatus', 'INITIAL STARTED STOPPED CLOSED')
@@ -623,3 +629,24 @@ class Sink:
             self._run_fut.cancel()
         with suppress(asyncio.CancelledError):
             await self._run_fut
+
+
+class EventSink:
+
+    def __init__(self, source):
+        assert isinstance(source, EventDependency)
+        self._source = source
+        self._running = False
+        self.data = collections.deque()
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def _on_changed(self, *values):
+        self.data.append(values)
+
+    def start(self):
+        self._source.on_change.connect(self._on_changed)
+
+    def stop(self):
+        self._source.on_change.disconnect(self._on_changed)
