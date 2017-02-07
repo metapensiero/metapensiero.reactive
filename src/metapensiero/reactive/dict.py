@@ -41,32 +41,6 @@ class ReactiveContainerBase:
                          self._all_immutables)
         self._all_structures.follow(self._structure)
 
-    def _follow_reactive(self, rvalue, key=None, stop=False):
-        """Follow the events of another reactive container. Or stop following if the
-        `stop` parameter is ``True``.
-        """
-        assert isinstance(rvalue, ReactiveContainerBase), \
-            "Containers must be reactive"
-        if stop:
-            mname = 'unfollow'
-        else:
-            mname = 'follow'
-
-        for propname, depname in (('immutables', '_all_immutables'),
-                                  ('reactives', '_all_reactives'),
-                                  ('structure', '_all_structures')):
-            local_dep = getattr(self, depname)
-            follow_dep = getattr(rvalue, propname)
-            if stop:
-                getattr(local_dep, mname)(follow_dep)
-            else:
-                getattr(local_dep, mname)(follow_dep,
-                    ftrans=partial(self._follow_transform, rvalue, key))
-
-    def _follow_transform(self, followed, key,  *changes):
-        change = (operator.setitem, (self, key, followed))
-        return (change, changes)
-
     def _is_immutable(self, value):
         return isinstance(value, collections.abc.Hashable)
 
@@ -142,14 +116,14 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
             else:
                 self._follow_reactive(newv, key)
             change = (operator.setitem, (self, key, newv))
-            vdep.changed(*change)
-            self._structure.changed(*change)
+            vdep.changed(change)
+            self._structure.changed(change)
         elif newv is undefined:
             # delete
             vdep = self._key_dependencies.pop(key)
             change = (operator.delitem, (self, key))
-            vdep.changed(*change)
-            self._structure.changed(*change)
+            vdep.changed(change)
+            self._structure.changed(change)
             if self._is_immutable(oldv):
                 self._all_immutables.unfollow(vdep)
             else:
@@ -167,7 +141,33 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
                 self._follow_reactive(oldv, stop=True)
             if is_reactive:
                 self._follow_reactive(newv)
-            dep.changed(operator.setitem, (self, key, newv))
+            dep.changed((operator.setitem, (self, key, newv)))
+
+    def _follow_reactive(self, rvalue, key=None, stop=False):
+        """Follow the events of another reactive container. Or stop following if the
+        `stop` parameter is ``True``.
+        """
+        assert isinstance(rvalue, ReactiveContainerBase), \
+            "Containers must be reactive"
+        if stop:
+            mname = 'unfollow'
+        else:
+            mname = 'follow'
+
+        for propname, depname in (('immutables', '_all_immutables'),
+                                  ('reactives', '_all_reactives'),
+                                  ('structure', '_all_structures')):
+            local_dep = getattr(self, depname)
+            follow_dep = getattr(rvalue, propname)
+            if stop:
+                getattr(local_dep, mname)(follow_dep)
+            else:
+                getattr(local_dep, mname)(follow_dep,
+                    ftrans=partial(self._follow_transform, rvalue, key))
+
+    def _follow_transform(self, followed, key,  *changes):
+        change = (operator.setitem, (self, key, followed))
+        return (change,) + changes
 
     def keys(self):
         self._structure.depend()

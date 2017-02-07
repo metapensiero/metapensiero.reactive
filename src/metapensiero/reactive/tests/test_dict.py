@@ -68,14 +68,14 @@ def test_dict_basic(env):
     assert not foo_setter.invalidated
     assert foo.invalidated
 
-    assert list(struct_sink) == [(operator.setitem, (d, 'foo', 'bar')),
-                                 (operator.delitem, (d, 'foo'))]
-    assert list(sink) == [(operator.setitem, (d, 'foo', 'bar')),
-                          (operator.setitem, (d, 'foo', 'bar')),
-                          (operator.setitem, (d, 'foo', 'zoo')),
-                          (operator.setitem, (d, 'foo', 'bar')),
-                          (operator.delitem, (d, 'foo')),
-                          (operator.delitem, (d, 'foo'))]
+    assert list(struct_sink) == [((operator.setitem, (d, 'foo', 'bar')),),
+                                 ((operator.delitem, (d, 'foo')),)]
+    assert list(sink) == [((operator.setitem, (d, 'foo', 'bar')),),
+                          ((operator.setitem, (d, 'foo', 'bar')),),
+                          ((operator.setitem, (d, 'foo', 'zoo')),),
+                          ((operator.setitem, (d, 'foo', 'bar')),),
+                          ((operator.delitem, (d, 'foo')),),
+                          ((operator.delitem, (d, 'foo')),)]
 
     sink.data.clear()
     struct_sink.data.clear()
@@ -85,7 +85,7 @@ def test_dict_basic(env):
     o['zoo'] = 'b'
 
     sink_res = [
-        (operator.setitem, (d, 'other', o)),
+        ((operator.setitem, (d, 'other', o)),),
 
         ((operator.setitem, (d, 'other', o)),
          (operator.setitem, (o, 'pollo', 20))),
@@ -100,7 +100,7 @@ def test_dict_basic(env):
     assert list(sink) == sink_res
 
     assert list(struct_sink) == [
-        (operator.setitem, (d, 'other', o)),
+        ((operator.setitem, (d, 'other', o)),),
         ((operator.setitem, (d, 'other', o)),
          (operator.setitem, (o, 'zoo', 'b')))]
 
@@ -113,10 +113,10 @@ def test_dict_basic(env):
     o['pollo'] = 5
 
     assert list(sink) == [
-        (operator.delitem, (d, 'other'))]
+        ((operator.delitem, (d, 'other')),)]
 
     assert list(struct_sink) == [
-        (operator.delitem, (d, 'other'))]
+        ((operator.delitem, (d, 'other')),)]
 
     # teardown
     all.stop()

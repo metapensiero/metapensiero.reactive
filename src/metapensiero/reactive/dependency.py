@@ -95,7 +95,7 @@ class FollowMixin:
 
     def changed(self, *values):
         super().changed()
-        if len(values) == 1:
+        if len(values) == 1 and self._source is not None:
             values = values[0]
         if self._source is not None:
             values = ((self._source,), values)
