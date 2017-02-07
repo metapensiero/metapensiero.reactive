@@ -58,7 +58,7 @@ class Dependency:
 
     def changed(self):
         """This is called to declare that value/state/object that this instance
-        rephresents has changed. It will notify every computation that was
+        represents has changed. It will notify every computation that was
         calculating when was called `depend` on it.
         """
         deps = self._dependents
