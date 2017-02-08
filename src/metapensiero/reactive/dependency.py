@@ -278,7 +278,7 @@ class Selector:
             self._results.append(el)
             self._result_avail.set()
 
-    def _remove_stopped_source(self, stop_fut):
+    def _remove_stopped_source(self, source,  stop_fut):
         if source in self._source_data:
             del self._source_data[source]
         self._sources.remove(source)
@@ -382,7 +382,8 @@ class Selector:
         if source in self._sources:
             stop_fut = asyncio.ensure_future(self._stop_iteration_on(source),
                                              loop=self.loop)
-            stop_fut.add_done_callback(self._remove_stopped_source)
+            stop_fut.add_done_callback(
+                functools.partial(self._remove_stopped_source, source))
 
 
 TEE_STATUS = enum.IntEnum('TeeStatus', 'INITIAL STARTED STOPPED CLOSED')
