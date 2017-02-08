@@ -14,8 +14,13 @@ import pytest
 from metapensiero import reactive
 from metapensiero.reactive.dependency import Sink
 
-def test_dict_basic(env):
-    d = reactive.ReactiveDict()
+@pytest.fixture(params=(reactive.ReactiveDict, reactive.ReactiveChainMap))
+def dict_cls(request):
+    return request.param
+
+
+def test_dict_basic(env, dict_cls):
+    d = dict_cls()
     all = env.run_comp(lambda c: d.all.depend())
     sink = d.all.sink()
     sink.start()
@@ -79,7 +84,8 @@ def test_dict_basic(env):
 
     sink.data.clear()
     struct_sink.data.clear()
-    o = reactive.ReactiveDict(pollo=2, polletto='a')
+    o = dict_cls()
+    o.update(dict(pollo=2, polletto='a'))
     d['other'] = o
     o['pollo'] = 20
     o['zoo'] = 'b'
@@ -124,3 +130,26 @@ def test_dict_basic(env):
     imm.stop()
     foo_setter.stop()
     foo.stop()
+
+
+def test_chaindict():
+
+    d = reactive.ReactiveChainMap()
+    dd = d.new_child()
+
+    sink = dd.all.sink()
+    sink.start()
+    struct_sink = dd.structure.sink()
+    struct_sink.start()
+
+    d['foo'] = 'bar'
+
+    dd['foo'] = 'zoo'
+    d['foo'] = 'coo'
+    assert dd['foo'] == 'zoo'
+    sink_res = [((operator.setitem, (dd, 'foo', 'bar')),),
+                ((operator.setitem, (dd, 'foo', 'bar')),),
+                ((operator.setitem, (dd, 'foo', 'zoo')),),
+                ((operator.setitem, (dd, 'foo', 'zoo')),),]
+    assert list(sink) == sink_res
+    assert list(sink)[0][0][1][0] is dd

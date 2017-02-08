@@ -11,7 +11,7 @@ from functools import partial
 import logging
 import operator
 
-from .dependency import EventDependency
+from .dependency import EventDependency, StopFollowingValue
 from . import get_tracker
 
 
@@ -40,6 +40,31 @@ class ReactiveContainerBase:
         self._all.follow(self._all_structures, self._all_reactives,
                          self._all_immutables)
         self._all_structures.follow(self._structure)
+
+    def _build_follow_transformation(self, rvalue, **kwargs):
+        return None
+
+    def _follow_reactive(self, rvalue, stop=False, **kwargs):
+        """Follow the events of another reactive container. Or stop following if the
+        `stop` parameter is ``True``.
+        """
+        assert isinstance(rvalue, ReactiveContainerBase), \
+            "Containers must be reactive"
+        if stop:
+            mname = 'unfollow'
+        else:
+            mname = 'follow'
+
+        for propname, depname in (('immutables', '_all_immutables'),
+                                  ('reactives', '_all_reactives'),
+                                  ('structure', '_all_structures')):
+            local_dep = getattr(self, depname)
+            follow_dep = getattr(rvalue, propname)
+            if stop:
+                getattr(local_dep, mname)(follow_dep)
+            else:
+                getattr(local_dep, mname)(follow_dep,
+                    ftrans=self._build_follow_transformation(rvalue, **kwargs))
 
     def _is_immutable(self, value):
         return isinstance(value, collections.abc.Hashable)
@@ -105,6 +130,9 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         super().__setitem__(key, value)
         self._change(key, oldv, value)
 
+    def _build_follow_transformation(self, rvalue, *, key=None):
+        return partial(self._follow_transform, rvalue, key)
+
     def _change(self, key, oldv, newv):
         """Analyze changed values and trigger changed events on dependencies."""
         if oldv is undefined:
@@ -114,7 +142,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
             if self._is_immutable(newv):
                 self._all_immutables.follow(vdep)
             else:
-                self._follow_reactive(newv, key)
+                self._follow_reactive(newv, key=key)
             change = (operator.setitem, (self, key, newv))
             vdep.changed(change)
             self._structure.changed(change)
@@ -143,28 +171,6 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
                 self._follow_reactive(newv)
             dep.changed((operator.setitem, (self, key, newv)))
 
-    def _follow_reactive(self, rvalue, key=None, stop=False):
-        """Follow the events of another reactive container. Or stop following if the
-        `stop` parameter is ``True``.
-        """
-        assert isinstance(rvalue, ReactiveContainerBase), \
-            "Containers must be reactive"
-        if stop:
-            mname = 'unfollow'
-        else:
-            mname = 'follow'
-
-        for propname, depname in (('immutables', '_all_immutables'),
-                                  ('reactives', '_all_reactives'),
-                                  ('structure', '_all_structures')):
-            local_dep = getattr(self, depname)
-            follow_dep = getattr(rvalue, propname)
-            if stop:
-                getattr(local_dep, mname)(follow_dep)
-            else:
-                getattr(local_dep, mname)(follow_dep,
-                    ftrans=partial(self._follow_transform, rvalue, key))
-
     def _follow_transform(self, followed, key,  *changes):
         change = (operator.setitem, (self, key, followed))
         return (change,) + changes
@@ -181,3 +187,42 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         self._structure.depend()
         self._all_values.depend()
         return super().items()
+
+
+class ReactiveChainMap(collections.ChainMap, ReactiveContainerBase):
+    """A collections.ChainMap subclass made of ReactiveDicts.
+
+    As of now it lacks the filtering of changes in structure when the key is
+    already present in a dict at a lower level.
+    """
+
+    def __init__(self, *maps, equal=None, tracker=None):
+        ReactiveContainerBase.__init__(self, equal, tracker)
+        if maps:
+            maps = [m if type(m) is ReactiveDict else ReactiveDict(m) for m in
+                    maps]
+        else:
+            maps = [ReactiveDict()]
+        collections.ChainMap.__init__(self, *maps)
+        self.setup_follow(*maps)
+
+    def _build_follow_transformation(self, rvalue, **kwargs):
+        return partial(self._follow_map, rvalue)
+
+    def _follow_map(self, map, *changes):
+        fg_map = self.maps[0]
+        root, *inner = changes
+        action, (m, k, *v) = root
+        assert m is map
+        assert m in self.maps
+        if map is not fg_map:
+            if k in fg_map:
+                raise StopFollowingValue()
+        # reassemble root using this instance as the object
+        root = (action, (self, k) + tuple(v))
+        changes = (root,) + tuple(inner)
+        return changes
+
+    def setup_follow(self, *maps):
+        for m in maps:
+            self._follow_reactive(m)

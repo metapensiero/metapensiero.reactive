@@ -53,4 +53,4 @@ from .value import Value
 from .flush import AsyncioFlushManager
 from .nlist import reactivenamedlist as namedlist
 from .computation import BaseComputation, Computation, computation
-from .dict import ReactiveDict
+from .dict import ReactiveDict, ReactiveChainMap
