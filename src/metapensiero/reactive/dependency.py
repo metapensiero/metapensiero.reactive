@@ -13,6 +13,7 @@ import enum
 import functools
 import logging
 import inspect
+from weakref import WeakKeyDictionary
 
 from metapensiero import signal
 
@@ -82,7 +83,7 @@ class FollowMixin:
 
     def __init__(self, tracker=None, source=None):
         super().__init__(tracker, source)
-        self._following = {}
+        self._following = WeakKeyDictionary()
 
     def _add_followed(self, followed, ftrans=None):
         raise NotImplementedError()
