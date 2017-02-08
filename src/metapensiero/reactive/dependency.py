@@ -79,6 +79,11 @@ class Dependency:
         return self._source
 
 
+class StopFollowingValue(Exception):
+    """Possibly raised by FollowMixin.follow ftrans function to abort following a
+    single value."""
+
+
 class FollowMixin:
 
     def __init__(self, tracker=None, source=None):
@@ -135,9 +140,12 @@ class EventDependency(FollowMixin, Dependency,
 
     def _on_followed_changes(self, followed, *changes):
         ftrans, cback = self._following[followed]
-        if ftrans:
-            changes = ftrans(*changes)
-        self.changed(*changes)
+        try:
+            if ftrans:
+                changes = ftrans(*changes)
+            self.changed(*changes)
+        except StopFollowingValue:
+            pass
 
     def sink(self):
         return EventSink(self)
