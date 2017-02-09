@@ -179,11 +179,12 @@ class Computation(BaseComputation):
         else:
             recomputing_allowed = True
         if not (self.invalidated or guard) or (guard and recomputing_allowed):
+            self.on_invalidate.notify()
             if not (self._recomputing or self.stopped):
                 flusher = self._tracker.flusher
                 flusher.add_computation(self)
+                flusher.require_flush()
 
-            self.on_invalidate.notify()
         super(Computation, self).invalidate(dependency)
 
 
