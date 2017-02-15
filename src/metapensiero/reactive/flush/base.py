@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# :Project:  metapensiero.reactive -- base flush manager class
-# :Created:    mer 27 gen 2016 15:38:25 CET
+# :Project:   metapensiero.reactive -- base flush manager class
+# :Created:   mer 27 gen 2016 15:38:25 CET
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
+# :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
 import logging
@@ -114,5 +115,6 @@ class BaseFlushManager(metaclass=signal.SignalAndHandlerInitMeta):
         finally:
             self._in_flush = False
             self._will_flush = False
+
 
 __all__ = ('BaseFlushManager', )
