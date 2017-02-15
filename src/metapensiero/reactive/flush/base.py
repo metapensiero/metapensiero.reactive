@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseFlushManager(metaclass=signal.SignalAndHandlerInitMeta):
+    "Base flush manager."
 
     on_before_flush = signal.Signal()
     """A signal that will notify just before the flush operation
