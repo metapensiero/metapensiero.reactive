@@ -138,7 +138,7 @@ class Computation(BaseComputation):
             self._compute(first_run=True)
         except:
             errored = True
-            logger.exception("Error while runnning computation")
+            logger.exception("Error while running computation")
             raise
         finally:
             if errored:

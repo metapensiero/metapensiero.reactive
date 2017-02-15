@@ -107,7 +107,7 @@ class BaseFlushManager(metaclass=signal.SignalAndHandlerInitMeta):
                         # give a chance to a computation to regain
                         # valid state
                         recalcs.add(comp)
-                        logger.warning('A computation needs still a recalculaton')
+                        logger.warning('A computation needs still a recalculation')
                         pending.append(comp)
             self.on_after_flush.notify()
             self.on_after_flush.clear()
