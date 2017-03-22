@@ -136,8 +136,11 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
             oldv = self.data[key]
         else:
             oldv = missing
+        if isinstance(value, dict):
+            value = type(self)(value)
         super().__setitem__(key, value)
         self._change(key, oldv, value)
+        return value
 
     def _build_follow_transformation(self, rvalue, *, key=None):
         return partial(self._follow_transform, rvalue, key)
