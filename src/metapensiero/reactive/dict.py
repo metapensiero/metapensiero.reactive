@@ -17,7 +17,14 @@ from . import get_tracker
 
 logger = logging.getLogger(__name__)
 
-undefined = object()
+
+class Undefined:
+
+    def __bool__(self):
+        return False
+
+undefined = Undefined()
+missing = Undefined()
 
 
 class ReactiveContainerBase:
@@ -26,6 +33,8 @@ class ReactiveContainerBase:
     values or changes in the structure. It also exposes an `all` member to
     track all of them.
     """
+
+    UNDEFINED = undefined
 
     def __init__(self, equal=None, tracker=None):
         self._tracker = tracker or get_tracker()
@@ -109,9 +118,9 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         if key in self.data:
             oldv = self.data[key]
         else:
-            oldv = undefined
+            oldv = missing
         super().__delitem__(key)
-        self._change(key, oldv, undefined)
+        self._change(key, oldv, missing)
 
     def __getitem__(self, key):
         value = super().__getitem__(key)
@@ -126,7 +135,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         if key in self.data:
             oldv = self.data[key]
         else:
-            oldv = undefined
+            oldv = missing
         super().__setitem__(key, value)
         self._change(key, oldv, value)
 
@@ -135,7 +144,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
 
     def _change(self, key, oldv, newv):
         """Analyze changed values and trigger changed events on dependencies."""
-        if oldv is undefined:
+        if oldv is missing:
             # add
             vdep = EventDependency(self._tracker)
             self._key_dependencies[key] = vdep
@@ -146,7 +155,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
             change = (operator.setitem, (self, key, newv))
             vdep.changed(change)
             self._structure.changed(change)
-        elif newv is undefined:
+        elif newv is missing:
             # delete
             vdep = self._key_dependencies.pop(key)
             change = (operator.delitem, (self, key))
