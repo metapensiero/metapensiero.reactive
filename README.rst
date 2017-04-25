@@ -69,7 +69,7 @@ it as any kind of side effect.
 Now, we suppose that ``cur_temp_fahrenheit`` changes and we want to
 log it whenever it does so.
 
-To do that we need to trasform ``cur_temp_fahrenheit`` into a
+To do that we need to transform ``cur_temp_fahrenheit`` into a
 *reactive* value and have the *tracker* track the dependencies between
 that value and the *computation* that uses it. This way, when the
 value is changed, our ``log_temp_celsius()`` can be re-run and it will
@@ -227,7 +227,7 @@ order to batch computation's recalculation in another ``Greenlet`` or
 recomputed sequentially, it's important to avoid having *suspension
 points* in the reactive code, like calls to ``sleep()`` functions or
 the execution of ``yield from`` and ``await`` statements. If this is
-unavoidable, a *manual* suspension context manager is avaliable in
+unavoidable, a *manual* suspension context manager is available in
 computations, named ``suspend()``. Using that, the block of code
 inside a *with* statement runs isolated, and tracking is reinstated
 afterwards.
