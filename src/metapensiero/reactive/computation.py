@@ -28,7 +28,8 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     @signal.Signal
     def on_invalidate(self, subscribers, notify):
-        self._notify(self.on_invalidate, notify)
+        if self._tracker is not None:
+            self._notify(self.on_invalidate, notify)
 
     @on_invalidate.on_connect
     def on_invalidate(self, handler, subscribers, connect):
@@ -40,7 +41,8 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     @signal.Signal
     def on_stop(self, subscribers, notify):
-        self._notify(self.on_invalidate, notify)
+        if self._tracker is not None:
+            self._notify(self.on_invalidate, notify)
 
     @on_stop.on_connect
     def on_stop(self, handler, subscribers, connect):
