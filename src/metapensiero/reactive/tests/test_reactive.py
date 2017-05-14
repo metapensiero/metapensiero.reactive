@@ -81,6 +81,45 @@ def test_computation_stopping(env):
     assert len(dep._dependents) == 0
 
 
+def test_computation_stopping_guard(env):
+    """Checks that the computation stops correctly even when the guard doesn't
+    allow recomputation."""
+    t = env.tracker
+    dep = t.dependency()
+    v = "A sample V"
+    results = dict(autorun=[], comp_invalidate=False)
+
+    def dep_func():
+        dep()
+        return v
+
+    def autorun(comp):
+        assert t.active is True
+        assert t.current_computation is comp
+        results['autorun'].append(dep_func())
+
+    def guard(comp):
+        return False
+
+    comp = t.reactive(autorun)
+
+    assert results == dict(autorun=["A sample V"], comp_invalidate=False)
+    assert comp.invalidated is False
+    assert t.active is False
+    assert t.current_computation is None
+    assert len(dep._dependents) == 1
+    comp.guard = guard
+    comp.stop()
+    assert len(dep._dependents) == 0
+    dep.changed()
+    env.wait_for_flush()
+    assert results == dict(autorun=["A sample V"], comp_invalidate=False)
+    assert comp.invalidated is True
+    assert t.active is False
+    assert t.current_computation is None
+    assert len(dep._dependents) == 0
+
+
 def test_value(env):
 
     t = env.tracker

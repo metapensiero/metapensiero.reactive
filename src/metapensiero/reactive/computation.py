@@ -174,15 +174,15 @@ class Computation(BaseComputation):
     def invalidate(self, dependency=None):
         """Invalidate the current state of this computation."""
         guard = self.guard
-        if guard and self._parent:
+        if guard is not None and self._parent is not None:
             raise ReactiveError("The guard cannot be used with parent")
-        elif guard:
+        elif guard is not None:
             recomputing_allowed = self.guard(self)
         else:
             recomputing_allowed = True
-        if not (self.invalidated or guard) or (guard and recomputing_allowed):
+        if not self.invalidated:
             self.on_invalidate.notify()
-            if not (self._recomputing or self.stopped):
+            if not (self._recomputing or self.stopped) and recomputing_allowed:
                 flusher = self._tracker.flusher
                 flusher.add_computation(self)
                 flusher.require_flush()

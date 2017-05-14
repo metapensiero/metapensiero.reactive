@@ -65,6 +65,10 @@ class Dependency:
         deps = self._dependents
         if len(deps) > 0:
             for comp in list(deps):
+                if comp.stopped:
+                    logger.error(
+                        'Refusing to invalidate an already'
+                        ' stopped computation. This should not happen!')
                 comp.invalidate(self)
             self._tracker.flusher.require_flush()
 
