@@ -92,7 +92,7 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     def suspend(self):
         """Context manager to suspend tracking"""
-        return self._tracker.supsend_computation()
+        return self._tracker.suspend_computation()
 
     def stop(self):
         """Cease to re-run the computation function when invalidated and
