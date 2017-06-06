@@ -23,6 +23,7 @@ class Undefined:
     def __bool__(self):
         return False
 
+
 undefined = Undefined()
 missing = Undefined()
 
