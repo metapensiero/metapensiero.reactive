@@ -6,13 +6,14 @@
 # :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
+import abc
 import asyncio
 import collections
+import collections.abc
 from contextlib import suppress
 import enum
 import functools
 import logging
-import inspect
 from weakref import WeakKeyDictionary
 
 from metapensiero import signal
@@ -88,23 +89,33 @@ class StopFollowingValue(Exception):
     single value."""
 
 
-class FollowMixin:
+class FollowMixin(abc.ABC):
 
-    def __init__(self, tracker=None, source=None):
-        super().__init__(tracker, source)
+    _source = None
+
+    def __init__(self):
         self._following = WeakKeyDictionary()
 
+    @abc.abstractmethod
     def _add_followed(self, followed, ftrans=None):
-        raise NotImplementedError()
+        """Per class implementation.
 
+        :param followed: an async generator
+        :param ftrans: a function
+        """
+
+    @abc.abstractclassmethod
     def _dispatch(self, *values):
-        raise NotImplementedError()
+        """Per class implementation."""
 
+    @abc.abstractmethod
     def _remove_followed(self, followed):
-        raise NotImplementedError()
+        """Per class implementation.
 
-    def changed(self, *values):
-        super().changed()
+        :param followed: an ansync generator
+        """
+
+    def send(self, *values):
         if len(values) == 1 and self._source is not None:
             values = values[0]
         if self._source is not None:
@@ -114,13 +125,13 @@ class FollowMixin:
     def follow(self, *others, ftrans=None):
         """Follow the changed event of another dependency and change as well."""
         for other in others:
-            assert isinstance(other, Dependency)
+            assert isinstance(other, FollowMixin)
             self._add_followed(other, ftrans)
 
     def unfollow(self, *others):
         """Stop following another dependency."""
         for other in others:
-            assert isinstance(other, Dependency)
+            assert isinstance(other, FollowMixin)
             self._remove_followed(other)
 
 
@@ -128,6 +139,10 @@ class EventDependency(FollowMixin, Dependency,
                       metaclass=signal.SignalAndHandlerInitMeta):
 
     on_change = signal.Signal()
+
+    def __init__(self, tracker=None, source=None):
+        Dependency.__init__(self, tracker, source)
+        FollowMixin.__init__(self)
 
     def _add_followed(self, followed, ftrans=None):
         assert isinstance(followed, EventDependency)
@@ -151,16 +166,21 @@ class EventDependency(FollowMixin, Dependency,
         except StopFollowingValue:
             pass
 
+    def changed(self, *values):
+        super().changed()
+        self.send(*values)
+
     def sink(self):
         return EventSink(self)
 
 
-class StreamDependency(FollowMixin, Dependency):
+class StreamFollower(FollowMixin):
 
-    def __init__(self, tracker=None, source=None):
-        super().__init__(tracker, source)
+    def __init__(self, remove_none=False):
+        super().__init__()
         self._internal_tee = Tee(push_mode=True)
-        self._follow_selector = Selector(self._internal_tee)
+        self._follow_selector = Selector(self._internal_tee,
+                                         remove_none=remove_none)
         self._public_tee = Tee(self._follow_selector)
 
     def __aiter__(self):
@@ -182,7 +202,6 @@ class StreamDependency(FollowMixin, Dependency):
         del self._following[followed]
 
     def _follow_handler(self, ftrans, *values):
-        Dependency.changed(self)
         if ftrans:
             return ftrans(*values)
         else:
@@ -190,6 +209,37 @@ class StreamDependency(FollowMixin, Dependency):
 
     def sink(self):
         return Sink(self)
+
+
+
+class StreamDependency(StreamFollower, Dependency):
+
+    def __init__(self, tracker=None, source=None):
+        Dependency.__init__(self, tracker, source)
+        StreamFollower.__init__(self)
+        self._public_tee = Tee(self._follow_selector)
+
+    def _follow_handler(self, ftrans, *values):
+        Dependency.changed(self)
+        return super()._follow_handler(ftrans, *values)
+
+    def changed(self, *values):
+        Dependency.changed(self)
+        self.send(*values)
+
+
+class Pluggable(abc.ABC):
+
+    def __lshift__(self, other):
+        return self.plug(other)
+
+    def plug(self, other):
+        self._add_plugged(other)
+        return self
+
+    @abc.abstractmethod
+    def _add_plugged(self, other):
+        """Per class implementation of the plug behavior"""
 
 
 SELECTOR_STATUS = enum.IntEnum('SelectorStatus', 'INITIAL STARTED STOPPED CLOSED')
@@ -390,11 +440,53 @@ class Selector:
                 functools.partial(self._remove_stopped_source, source))
 
 
+
+class SingleSourced(Pluggable):
+
+    active = False
+    _source = None
+
+    def __init__(self, source=None):
+        self.source = source
+
+    def _add_plugged(self, other):
+        self.source = other
+
+    def check_source(self):
+        if self._source is None:
+            raise RuntimeError("Undefined source")
+
+    def get_source_agen(self):
+        self.check_source()
+        if isinstance(self._source, collections.abc.AsyncIterable):
+            result = self._source.__aiter__()
+        else:
+            result = self._source()
+        assert isinstance(result, collections.abc.AsyncGenerator)
+        return result
+
+    @property
+    def source(self):
+        return self._source
+
+    @source.setter
+    def source(self, value):
+        if value is self._source:
+            return
+        if self.active:
+            raise RuntimeError("Cannot set the source while active")
+        if not (isinstance(value, collections.abc.AsyncIterable) or
+                callable(value)):
+            raise RuntimeError("The source must be and async iterable or a "
+                               "callable returning an async generator")
+        self._source = value
+
+
 TEE_STATUS = enum.IntEnum('TeeStatus', 'INITIAL STARTED STOPPED CLOSED')
 TEE_MODE = enum.IntEnum('TeeMode', 'PULL PUSH')
 
 
-class Tee:
+class Tee(SingleSourced):
     """An object clones an asynchronous iterator. It is not meant to give each
     consumer the same stream of values no matter when the consumer starts the
     iteration like the tee in itertools. Here *when* matters: each consumer
@@ -420,6 +512,10 @@ class Tee:
       consuming another value from the source.
     :param loop: The optional loop.
     :type loop: `asyncio.BaseEventLoop`
+
+    .. todo::
+
+      Remove the need for the loop
     """
 
     def __init__(self, source=None, *, push_mode=False, loop=None,
@@ -430,7 +526,7 @@ class Tee:
             self._status = TEE_STATUS.INITIAL
         else:
             self._status = TEE_STATUS.STARTED
-        self._source = source
+        super().__init__(source)
         self._queues = {}
         self._run_fut = None
         self._send_queue = collections.deque()
@@ -460,6 +556,7 @@ class Tee:
         """Remove a queue, called by the generator instance that is driven by a
         consumer when it gets garbage collected. Also, if there are no more
         queues to fill, halt the source consuming task.
+
         """
         queue = self._queues.pop(ev)
         queue.clear()
@@ -521,6 +618,10 @@ class Tee:
         next_value_avail, queue = self._add_queue()
         return self.gen(next_value_avail, queue)
 
+    @property
+    def active(self):
+        return self._status == TEE_STATUS.STARTED
+
     def close(self):
         """Close a started tee and mark it as depleted, used in ``push`` mode."""
         assert self._status == TEE_STATUS.STARTED
@@ -562,39 +663,31 @@ class Tee:
 
     def run(self):
         """Starts the source-consuming task."""
-        assert self._source is not None
-        if hasattr(self._source, '__aiter__'):
-            source = self._source.__aiter__()
-        else:
-            assert callable(self._source)
-            source = self._source()
-        self._run_fut = asyncio.ensure_future(self._run(source), loop=self.loop)
+        agen = self.get_source_agen()
+        self._run_fut = asyncio.ensure_future(self._run(agen), loop=self.loop)
         self._status = TEE_STATUS.STARTED
 
-    @property
-    def source(self):
-        return self._source
 
-    @source.setter
-    def source(self, value):
-        assert self._source is None and self._mode == TEE_MODE.PULL
-        self._source = value
-
-
-class Transformer:
+class Transformer(SingleSourced):
     """A small utility class to alter a stream of values generated or sent to an
     async iterator.  """
 
-    def __init__(self, source, frecv=None, fsend=None):
-        self.source = source
+    def __init__(self, source=None, frecv=None, fsend=None):
+        super().__init__(source)
         self.recv_func = frecv
         self.send_func = fsend
+        self._agen = None
 
     def __aiter__(self):
-        return self._gen(self.recv_func, self.send_func)
+        self.check_source()
+        if self._agen is not None:
+            raise RuntimeError("Already itered on")
+        self.active = True
+        self._agen = self._gen(self.recv_func, self.send_func)
+        return self._agen
 
     async def _gen(self, frecv=None, fsend=None):
-        agen = self.source.__aiter__()
+        agen = self.get_source_agen()
         send_value = None
         try:
             while True:
@@ -606,24 +699,25 @@ class Transformer:
                     send_value = fsend(send_value)
         except StopAsyncIteration:
             pass
+        finally:
+            self._agen = None
+            self.active = False
 
 
-class Sink:
+class Sink(SingleSourced):
 
-    def __init__(self, source, *, loop=None):
-        self.loop = loop or asyncio.get_event_loop()
-        self._source = source
-        self._running = False
+    def __init__(self, source=None):
+        super().__init__(source)
         self.data = collections.deque()
         self._run_fut = None
-        self.started = self.loop.create_future()
+        self.started = None
 
     def __iter__(self):
         return iter(self.data)
 
     async def _run(self):
-        self._running = True
-        agen = self._source.__aiter__()
+        self.active = True
+        agen = self.get_source_agen()
         self.started.set_result(None)
         try:
             async for el in agen:
@@ -631,15 +725,18 @@ class Sink:
         except asyncio.CancelledError:
             await agen.aclose()
         finally:
-            self._running = False
+            self.active = False
 
     async def start(self):
-        if not self._running and not self._run_fut:
-            self._run_fut = asyncio.ensure_future(self._run(), loop=self.loop)
+        self.check_source()
+        if not self.active and not self._run_fut:
+            loop = asyncio.get_event_loop()
+            self.started = loop.create_future()
+            self._run_fut = asyncio.ensure_future(self._run())
             await self.started
 
     async def stop(self):
-        if self._running and self._run_fut:
+        if self.active and self._run_fut:
             self._run_fut.cancel()
         with suppress(asyncio.CancelledError):
             await self._run_fut
@@ -649,8 +746,8 @@ class EventSink:
 
     def __init__(self, source):
         assert isinstance(source, EventDependency)
-        self._source = source
-        self._running = False
+        self.source = source
+        self.active = False
         self.data = collections.deque()
 
     def __iter__(self):
@@ -660,7 +757,7 @@ class EventSink:
         self.data.append(values)
 
     def start(self):
-        self._source.on_change.connect(self._on_changed)
+        self.source.on_change.connect(self._on_changed)
 
     def stop(self):
-        self._source.on_change.disconnect(self._on_changed)
+        self.source.on_change.disconnect(self._on_changed)
