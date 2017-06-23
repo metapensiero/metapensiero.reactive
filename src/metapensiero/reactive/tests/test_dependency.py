@@ -12,7 +12,8 @@ from functools import partial
 import pytest
 
 from metapensiero import reactive
-from metapensiero.reactive.dependency import StreamDependency, Sink
+from metapensiero.reactive.stream_utils import Sink
+from metapensiero.reactive.dependency import StreamDependency
 
 
 @pytest.mark.asyncio
