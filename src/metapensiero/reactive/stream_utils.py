@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # :Project:   metapensiero.reactive -- async generator utilities
-# :Created:   mar 26 gen 2016 18:15:10 CET
+# :Created:   sab 24 giu 2017 02:40:52 CEST
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
 # :Copyright: © 2016, 2017 Alberto Berti
