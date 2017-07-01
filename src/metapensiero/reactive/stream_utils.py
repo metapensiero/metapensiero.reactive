@@ -516,7 +516,6 @@ class Destination(SingleSourced, ExecPossibleAwaitable):
     async def _destination(self, element):
         """Do something with each value pulled by the source"""
 
-
     async def _run(self):
         send_value = None
         try:
