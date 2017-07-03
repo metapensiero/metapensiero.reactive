@@ -10,10 +10,7 @@ import operator
 
 import namedlist
 
-from . import get_tracker
-
-
-undefined = object()
+from . import get_tracker, undefined
 
 
 class ReactiveNamedListMixin:

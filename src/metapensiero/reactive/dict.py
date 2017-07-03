@@ -12,19 +12,12 @@ import logging
 import operator
 
 from .dependency import EventDependency, StopFollowingValue
-from . import get_tracker
+from . import get_tracker, Undefined, undefined
 
 
 logger = logging.getLogger(__name__)
 
 
-class Undefined:
-
-    def __bool__(self):
-        return False
-
-
-undefined = Undefined()
 missing = Undefined()
 
 

@@ -48,6 +48,16 @@ def set_tracker(tracker_or_factory):
     DEFAULTS['tracker_instance'] = tracker_or_factory
 
 
+class Undefined:
+    """Marker class for undefined value."""
+
+    def __bool__(self):
+        return False
+
+undefined = Undefined()
+"Marker instance used for unspecified or missing values."
+
+
 from .tracker import Tracker
 from .value import Value
 from .flush import AsyncioFlushManager

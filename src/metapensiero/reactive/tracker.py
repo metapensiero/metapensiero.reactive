@@ -11,9 +11,11 @@ import logging
 
 from metapensiero import signal
 
-from .computation import AsyncComputation, Computation, undefined
+from .computation import AsyncComputation, Computation
 from .dependency import Dependency
 from .exception import ReactiveError
+
+from . import undefined
 
 
 logger = logging.getLogger(__name__)

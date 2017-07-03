@@ -14,6 +14,8 @@ import weakref
 from metapensiero import signal
 
 from .exception import ReactiveError
+from . import undefined
+
 
 logger = logging.getLogger(__name__)
 
@@ -262,10 +264,6 @@ def computation(method_or_tracker):
     else:
         tracker = get_tracker()
         return _Wrapper(method_or_tracker, tracker)
-
-
-undefined = object()
-"Marker instance used for unspecified or missing values."
 
 
 class AsyncComputation(Computation):
