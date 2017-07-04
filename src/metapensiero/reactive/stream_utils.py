@@ -19,11 +19,12 @@ import inspect
 class Pluggable(abc.ABC):
 
     def __lshift__(self, other):
-        return self.plug(other)
+        self.plug(other)
+        return other
 
     def plug(self, other):
         self._add_plugged(other)
-        return other
+        return self
 
     @abc.abstractmethod
     def _add_plugged(self, other):
