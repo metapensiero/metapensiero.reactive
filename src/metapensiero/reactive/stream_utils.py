@@ -14,6 +14,10 @@ from contextlib import suppress
 import enum
 import functools
 import inspect
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class Pluggable(abc.ABC):
@@ -522,6 +526,9 @@ class Destination(SingleSourced, ExecPossibleAwaitable):
         try:
             agen = self.get_source_agen()
             self.started.set_result(None)
+        except Exception as e:
+            self.started.set_exception(e)
+        try:
             while True:
                 value = await agen.asend(send_value)
                 send_value = await self._destination(value)
@@ -529,8 +536,9 @@ class Destination(SingleSourced, ExecPossibleAwaitable):
             pass
         except asyncio.CancelledError:
             await agen.aclose()
-        except Exception as e:
-            self.started.set_exception(e)
+        except Exception:
+            logger.exception('Error in agen stream')
+            raise
         finally:
             self.active = False
 
