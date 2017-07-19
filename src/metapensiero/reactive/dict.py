@@ -52,7 +52,7 @@ class ReactiveContainerBase:
         `stop` parameter is ``True``.
         """
         assert isinstance(rvalue, ReactiveContainerBase), \
-            "Containers must be reactive"
+            f"Containers must be reactive, {type(rvalue)} is not"
         if stop:
             mname = 'unfollow'
         else:
