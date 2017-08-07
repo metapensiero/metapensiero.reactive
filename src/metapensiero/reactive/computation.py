@@ -14,6 +14,8 @@ import weakref
 from metapensiero import signal
 
 from .exception import ReactiveError
+from . import undefined
+
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,8 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     @signal.Signal
     def on_invalidate(self, subscribers, notify):
-        self._notify(self.on_invalidate, notify)
+        if self._tracker is not None:
+            self._notify(self.on_invalidate, notify)
 
     @on_invalidate.on_connect
     def on_invalidate(self, handler, subscribers, connect):
@@ -40,7 +43,8 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     @signal.Signal
     def on_stop(self, subscribers, notify):
-        self._notify(self.on_invalidate, notify)
+        if self._tracker is not None:
+            self._notify(self.on_invalidate, notify)
 
     @on_stop.on_connect
     def on_stop(self, handler, subscribers, connect):
@@ -92,7 +96,7 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     def suspend(self):
         """Context manager to suspend tracking"""
-        return self._tracker.supsend_computation()
+        return self._tracker.suspend_computation()
 
     def stop(self):
         """Cease to re-run the computation function when invalidated and
@@ -138,7 +142,7 @@ class Computation(BaseComputation):
             self._compute(first_run=True)
         except:
             errored = True
-            logger.exception("Error while runnning computation")
+            logger.exception("Error while running computation")
             raise
         finally:
             if errored:
@@ -172,15 +176,15 @@ class Computation(BaseComputation):
     def invalidate(self, dependency=None):
         """Invalidate the current state of this computation."""
         guard = self.guard
-        if guard and self._parent:
+        if guard is not None and self._parent is not None:
             raise ReactiveError("The guard cannot be used with parent")
-        elif guard:
+        elif guard is not None:
             recomputing_allowed = self.guard(self)
         else:
             recomputing_allowed = True
-        if not (self.invalidated or guard) or (guard and recomputing_allowed):
+        if not self.invalidated:
             self.on_invalidate.notify()
-            if not (self._recomputing or self.stopped):
+            if not (self._recomputing or self.stopped) and recomputing_allowed:
                 flusher = self._tracker.flusher
                 flusher.add_computation(self)
                 flusher.require_flush()
@@ -260,9 +264,6 @@ def computation(method_or_tracker):
     else:
         tracker = get_tracker()
         return _Wrapper(method_or_tracker, tracker)
-
-
-undefined = object()
 
 
 class AsyncComputation(Computation):

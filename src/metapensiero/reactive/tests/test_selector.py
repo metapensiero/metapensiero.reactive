@@ -3,7 +3,7 @@
 # :Created:   lun 30 gen 2017 16:28:18 CET
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
-# :Copyright: Copyright (C) 2016 Alberto Berti
+# :Copyright: © 2016, 2017 Alberto Berti
 #
 
 import asyncio
@@ -11,7 +11,7 @@ from functools import partial
 
 import pytest
 
-from metapensiero.reactive.dependency import Selector, Tee, TEE_STATUS
+from metapensiero.reactive.stream_utils import Selector, Tee, TEE_STATUS
 
 
 async def gen(count, func, delay, initial_delay=None, gen_exc=False):

@@ -11,9 +11,11 @@ import logging
 
 from metapensiero import signal
 
-from .computation import AsyncComputation, Computation, undefined
+from .computation import AsyncComputation, Computation
 from .dependency import Dependency
 from .exception import ReactiveError
+
+from . import undefined
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +41,6 @@ class Tracker(metaclass=signal.SignalAndHandlerInitMeta):
         self.flusher = flusher_factory(self)
         self.in_compute = False
         """Flag that is ``True`` when a Computation is... calculating."""
-
 
     @property
     def active(self):
@@ -114,9 +115,9 @@ class Tracker(metaclass=signal.SignalAndHandlerInitMeta):
           computation
         :param equal: an optional equality comparison function to be used
           instead of the default `operator.eq`
-        :param initial_value: an optional initial value. By default it is a
-          marker value called ``undefined``, that will be replaced with the
-          first calculated value without generating any item
+        :param initial_value: an optional initial value, by default
+          :data:`~.computation.undefined`, a marker value that will be
+          replaced with the first calculated value without generating any item
         :returns: an instance of :class:`~.computation.AsyncComputation`
         """
         if with_parent:

@@ -10,10 +10,7 @@ import operator
 
 import namedlist
 
-from . import get_tracker
-
-
-undefined = object()
+from . import get_tracker, undefined
 
 
 class ReactiveNamedListMixin:
@@ -55,8 +52,10 @@ class ReactiveNamedListMixin:
 
 
 def reactivenamedlist(name, *args, **kwargs):
+    "Coerce a :class:`namedlist` to be reactive."
     nlist = namedlist.namedlist('_nl_' + name, *args, **kwargs)
     rnl = type(str(name), (ReactiveNamedListMixin, nlist,), {})
     return rnl
+
 
 __all__ = ('reactivenamedlist',)

@@ -53,7 +53,12 @@ setup(
     install_requires=['setuptools',
                       'metapensiero.signal>=0.7',
                       'namedlist'],
-    extras_require={'dev': ['metapensiero.tool.bump_version', 'readme']},
+    extras_require={
+        'dev': [
+            'metapensiero.tool.bump_version',
+            'readme_renderer',
+        ]
+    },
     setup_requires=['pytest-runner'],
     tests_require=TESTS_REQUIREMENTS,
 )

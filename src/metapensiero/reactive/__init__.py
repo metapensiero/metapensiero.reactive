@@ -15,7 +15,7 @@ DEFAULTS = dict(flusher_factory=None, tracker_instance=None)
 
 def get_flusher_factory():
     """Get the registered flusher factory or default to
-    BaseFlushManager.
+    :class:`~.flush.base.BaseFlushManager`.
     """
     global DEFAULTS
     ff = DEFAULTS.get('flusher_factory')
@@ -46,6 +46,16 @@ def get_tracker():
 
 def set_tracker(tracker_or_factory):
     DEFAULTS['tracker_instance'] = tracker_or_factory
+
+
+class Undefined:
+    """Marker class for undefined value."""
+
+    def __bool__(self):
+        return False
+
+undefined = Undefined()
+"Marker instance used for unspecified or missing values."
 
 
 from .tracker import Tracker

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# :Project:  metapensiero.reactive -- base flush manager class
-# :Created:    mer 27 gen 2016 15:38:25 CET
+# :Project:   metapensiero.reactive -- base flush manager class
+# :Created:   mer 27 gen 2016 15:38:25 CET
 # :Author:    Alberto Berti <alberto@metapensiero.it>
 # :License:   GNU General Public License version 3 or later
+# :Copyright: Copyright (C) 2016 Alberto Berti
 #
 
 import logging
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseFlushManager(metaclass=signal.SignalAndHandlerInitMeta):
+    "Base flush manager."
 
     on_before_flush = signal.Signal()
     """A signal that will notify just before the flush operation
@@ -106,12 +108,13 @@ class BaseFlushManager(metaclass=signal.SignalAndHandlerInitMeta):
                         # give a chance to a computation to regain
                         # valid state
                         recalcs.add(comp)
-                        logger.warning('A computation needs still a recalculaton')
+                        logger.warning('A computation needs still a recalculation')
                         pending.append(comp)
             self.on_after_flush.notify()
             self.on_after_flush.clear()
         finally:
             self._in_flush = False
             self._will_flush = False
+
 
 __all__ = ('BaseFlushManager', )

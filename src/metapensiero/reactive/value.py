@@ -11,12 +11,10 @@ import operator
 
 from weakref import WeakKeyDictionary
 
-from . import get_tracker
+from . import get_tracker, undefined
 from .exception import ReactiveError
 
 logger = logging.getLogger(__name__)
-
-undefined = object()
 
 
 class Value:
