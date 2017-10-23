@@ -41,7 +41,7 @@ class BaseComputation(Tracked, metaclass=signal.SignalAndHandlerInitMeta):
             self._notify(self.on_invalidate, notify)
 
     @on_invalidate.on_connect
-    def on_invalidate(self, handler, subscribers, connect):
+    def on_invalidate(self, handler, subscribers, connect, notify):
         if self.invalidated:
             with self.tracker.no_suspend():
                 handler(self)
@@ -54,7 +54,7 @@ class BaseComputation(Tracked, metaclass=signal.SignalAndHandlerInitMeta):
             self._notify(self.on_invalidate, notify)
 
     @on_stop.on_connect
-    def on_stop(self, handler, subscribers, connect):
+    def on_stop(self, handler, subscribers, connect, notify):
         if self.stopped:
             with self.tracker.no_suspend():
                 handler(self)
