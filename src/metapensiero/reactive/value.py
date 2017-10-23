@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# :Project:  metapensiero.reactive -- basic reactive value implementation
-# :Created:    mar 26 gen 2016 19:23:55 CET
-# :Author:    Alberto Berti <alberto@metapensiero.it>
-# :License:   GNU General Public License version 3 or later
+# :Project: metapensiero.reactive -- basic reactive value implementation
+# :Created: mar 26 gen 2016 19:23:55 CET
+# :Author:  Alberto Berti <alberto@metapensiero.it>
+# :License: GNU General Public License version 3 or later
 #
 
 import functools

@@ -62,8 +62,6 @@ async def test_selector(event_loop):
         results.append(el)
     assert len(results) == 20
 
-
-
     s = Selector(
         partial(gen, 10, lambda i: i, 0.1),
         partial(gen, 10, lambda i: chr(i+64), 0.1, gen_exc=True),
@@ -79,7 +77,8 @@ async def test_selector(event_loop):
 async def test_selector_send(event_loop):
 
     # use partial here just to differentiate the two sources
-    s = Selector(echo_gen, partial(echo_gen), remove_none=True, await_send=True)
+    s = Selector(echo_gen, partial(echo_gen), remove_none=True,
+                 await_send=True)
     ch = s.__aiter__()
 
     # setup

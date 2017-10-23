@@ -7,11 +7,9 @@
 #
 
 import asyncio
-from functools import partial
 
 import pytest
 
-from metapensiero import reactive
 from metapensiero.reactive.stream_utils import Sink
 from metapensiero.reactive.dependency import StreamDependency
 
@@ -38,6 +36,7 @@ async def test_stream_dependency(event_loop):
     assert list(sink) == ['a_value']
     await sink.stop()
 
+
 @pytest.mark.asyncio
 async def test_stream_following(event_loop):
     s = StreamDependency()
@@ -55,6 +54,7 @@ async def test_stream_following(event_loop):
     await asyncio.sleep(0.1)
     assert list(sink) == [(s1, 'a_value')]
     await sink.stop()
+
 
 @pytest.mark.xfail
 @pytest.mark.asyncio

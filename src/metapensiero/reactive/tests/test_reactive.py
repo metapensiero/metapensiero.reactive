@@ -132,14 +132,13 @@ def test_value(env):
         assert t.current_computation is comp
         results['autorun'].append(v.value)
 
-
     assert v.value == 1
     assert results == dict(autorun=[])
-    comp = t.reactive(autorun)
+    t.reactive(autorun)
     assert results == dict(autorun=[1])
     v.value = 2
     env.wait_for_flush()
-    assert results == dict(autorun=[1,2])
+    assert results == dict(autorun=[1, 2])
 
 
 def test_reactivenamedlist(env):
@@ -153,7 +152,7 @@ def test_reactivenamedlist(env):
         results.append((p.x, p.y))
 
     assert results == []
-    comp = t.reactive(autorun)
+    t.reactive(autorun)
     assert len(p._deps) == 2
     assert results == [(10, 15)]
     p.x = 20
@@ -203,7 +202,7 @@ def test_reactive_property(env):
         results['ext_autorun'].append(r.foo_flag)
 
     assert results == dict(ext_autorun=[], int_autorun=[])
-    comp = t.reactive(ext_autorun)
+    t.reactive(ext_autorun)
     assert results == dict(ext_autorun=[True], int_autorun=[True])
     r.text = 'Yes, foo is here'
     env.wait_for_flush()
@@ -243,7 +242,7 @@ def test_value_with_nested_autorun(env):
     assert results == dict(autorun=[], autorun2=[])
     is_v_prime()
     assert results == dict(autorun=[1], autorun2=[])
-    comp = t.reactive(autorun2)
+    t.reactive(autorun2)
     assert results == dict(autorun=[1], autorun2=[True])
     assert is_v_prime.value is True
     v.value = 2
@@ -419,7 +418,8 @@ def test_value_with_nested_autorun_stop_two_dependents(env):
     v.value = 5
     env.wait_for_flush()
 
-    assert results == dict(autorun=[1, 4], autorun2=[True], autorun3=[True, False])
+    assert results == dict(autorun=[1, 4],
+                           autorun2=[True], autorun3=[True, False])
     assert is_v_prime._comp.invalidated is True
 
     comp2 = t.reactive(autorun3)

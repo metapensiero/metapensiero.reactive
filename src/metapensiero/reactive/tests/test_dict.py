@@ -6,13 +6,12 @@
 # :Copyright: Copyright (C) 2017 Alberto Berti
 #
 
-import asyncio
 import operator
 
 import pytest
 
 from metapensiero import reactive
-from metapensiero.reactive.dependency import Sink
+
 
 @pytest.fixture(params=(reactive.ReactiveDict, reactive.ReactiveChainMap))
 def dict_cls(request):
