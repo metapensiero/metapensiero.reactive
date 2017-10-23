@@ -33,4 +33,5 @@ class Environment(object):
 @pytest.fixture(scope='function', params=FLUSHER_FACTORIES)
 def env(request, event_loop):
     flush_factory = request.param
-    return Environment(flush_factory, event_loop)
+    yield Environment(flush_factory, event_loop)
+    set_tracker(None)
