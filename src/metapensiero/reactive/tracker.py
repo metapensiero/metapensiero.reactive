@@ -99,7 +99,7 @@ class Tracker(metaclass=signal.SignalAndHandlerInitMeta):
             cc = self.current_computation
         else:
             cc = None
-        comp = Computation(self, cc, func, on_error)
+        comp = Computation(cc, func, on_error, tracker=self)
         return comp
 
     def async_reactive(self, func, on_error=None, with_parent=True, equal=None,
@@ -124,7 +124,8 @@ class Tracker(metaclass=signal.SignalAndHandlerInitMeta):
             cc = self.current_computation
         else:
             cc = None
-        comp = AsyncComputation(self, cc, func, on_error, equal, initial_value)
+        comp = AsyncComputation(cc, func, on_error, equal, initial_value,
+                                tracker=self)
         return comp
 
     def on_invalidate(self, func):
@@ -142,7 +143,7 @@ class Tracker(metaclass=signal.SignalAndHandlerInitMeta):
         self.flusher.require_flush(immediate=True)
 
     def dependency(self, source=None):
-        return Dependency(self, source)
+        return Dependency(source, tracker=self)
 
     @contextlib.contextmanager
     def suspend_computation(self):

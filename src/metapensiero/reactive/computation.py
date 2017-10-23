@@ -13,6 +13,7 @@ import weakref
 
 from metapensiero import signal
 
+from .base import Tracked
 from .exception import ReactiveError
 from . import undefined
 
@@ -20,7 +21,7 @@ from . import undefined
 logger = logging.getLogger(__name__)
 
 
-class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
+class BaseComputation(Tracked, metaclass=signal.SignalAndHandlerInitMeta):
 
     invalidated = False
     """If it's invalidated, it needs re-computing"""
@@ -28,38 +29,37 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
     stopped = False
     """Is this computation completely disabled"""
 
+    def __init__(self, parent=None, *, tracker=None):
+        super().__init__(tracker=tracker)
+        self.tracker._computations.add(self)
+        self._parent = parent
+        """The parent computation"""
+
     @signal.Signal
     def on_invalidate(self, subscribers, notify):
-        if self._tracker is not None:
+        if self.tracker is not None:
             self._notify(self.on_invalidate, notify)
 
     @on_invalidate.on_connect
     def on_invalidate(self, handler, subscribers, connect):
         if self.invalidated:
-            with self._tracker.no_suspend():
+            with self.tracker.no_suspend():
                 handler(self)
         else:
             connect(handler)
 
     @signal.Signal
     def on_stop(self, subscribers, notify):
-        if self._tracker is not None:
+        if self.tracker is not None:
             self._notify(self.on_invalidate, notify)
 
     @on_stop.on_connect
     def on_stop(self, handler, subscribers, connect):
         if self.stopped:
-            with self._tracker.no_suspend():
+            with self.tracker.no_suspend():
                 handler(self)
         else:
             connect(handler)
-
-    def __init__(self, tracker, parent=None):
-        self._tracker = tracker
-        """The associated Tracker"""
-        self._tracker._computations.add(self)
-        self._parent = parent
-        """The parent computation"""
 
     def __repr__(self):
         return '<{}.{} for {} at {}>'.format(self.__module__,
@@ -73,7 +73,7 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     def _notify(self, signal, fnotify):
         try:
-            with self._tracker.no_suspend():
+            with self.tracker.no_suspend():
                 fnotify(self)
         finally:
             signal.clear()
@@ -96,7 +96,7 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
 
     def suspend(self):
         """Context manager to suspend tracking"""
-        return self._tracker.suspend_computation()
+        return self.tracker.suspend_computation()
 
     def stop(self):
         """Cease to re-run the computation function when invalidated and
@@ -105,7 +105,7 @@ class BaseComputation(metaclass=signal.SignalAndHandlerInitMeta):
         if not self.stopped:
             self.stopped = True
             self.invalidate()
-            self._tracker._computations.remove(self)
+            self.tracker._computations.remove(self)
             self._func = None
             self._tracker = None
 
@@ -128,8 +128,8 @@ class Computation(BaseComputation):
     on_error = signal.Signal()
     """A signal that is notified when a computation results in an error."""
 
-    def __init__(self, tracker, parent, func, on_error=None):
-        super().__init__(tracker, parent)
+    def __init__(self, parent, func, on_error=None, *, tracker=None):
+        super().__init__(parent, tracker=tracker)
         self.first_run = True
         self._func = func
         """the function to execute"""
@@ -155,7 +155,7 @@ class Computation(BaseComputation):
         """Run the computation and reset the invalidation."""
         self.first_run = first_run
         self.invalidated = False
-        with self._tracker.while_compute(self):
+        with self.tracker.while_compute(self):
             self._func(self)
 
     def _recompute(self):
@@ -185,18 +185,18 @@ class Computation(BaseComputation):
         if not self.invalidated:
             self.on_invalidate.notify()
             if not (self._recomputing or self.stopped) and recomputing_allowed:
-                flusher = self._tracker.flusher
+                flusher = self.tracker.flusher
                 flusher.add_computation(self)
                 flusher.require_flush()
 
         super(Computation, self).invalidate(dependency)
 
 
-class _Wrapper:
+class _Wrapper(Tracked):
     """A small class to help wrapping methods and to keep computations."""
 
-    def __init__(self, wrapped, tracker):
-        self.tracker = tracker
+    def __init__(self, wrapped, *, tracker=None):
+        super().__init__(tracker=tracker)
         self.wrapped = wrapped
         self.computations = weakref.WeakKeyDictionary()
 
@@ -253,17 +253,16 @@ def computation(method_or_tracker):
     """
 
     from .tracker import Tracker
-    from . import get_tracker
 
     def decorate(method):
-        return _Wrapper(method, tracker)
+        return _Wrapper(method, tracker=tracker)
 
     if isinstance(method_or_tracker, Tracker):
         tracker = method_or_tracker
         return decorate
     else:
-        tracker = get_tracker()
-        return _Wrapper(method_or_tracker, tracker)
+        tracker = None
+        return _Wrapper(method_or_tracker, tracker=tracker)
 
 
 class AsyncComputation(Computation):
@@ -293,8 +292,8 @@ class AsyncComputation(Computation):
     """
 
 
-    def __init__(self, tracker, parent, func, on_error=None, equal=None,
-                 initial_value=undefined):
+    def __init__(self, parent, func, on_error=None, equal=None,
+                 initial_value=undefined, *, tracker=None):
         """
         :param tracker: an instance of :class:`~.tracker.Tracker` that is
           managing the computing process
@@ -313,7 +312,7 @@ class AsyncComputation(Computation):
         self.current_value = initial_value
         self._tracker = tracker
         self._init_next_value_container()
-        super().__init__(tracker, parent, func, on_error)
+        super().__init__(parent, func, on_error, tracker=tracker)
 
     async def __aenter__(self):
         """If this computation is consumed by an ``async with`` statement, the

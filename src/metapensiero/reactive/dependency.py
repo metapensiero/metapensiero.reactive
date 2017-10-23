@@ -15,17 +15,16 @@ from weakref import WeakKeyDictionary
 
 from metapensiero import signal
 
-from . import get_tracker
+from .base import Tracked
 from .stream_utils import Selector, Sink, Tee, Transformer
 
 logger = logging.getLogger(__name__)
 
 
-class Dependency:
+class Dependency(Tracked):
 
-    def __init__(self, tracker=None, source=None):
-        super().__init__()
-        self._tracker = tracker or get_tracker()
+    def __init__(self, source=None, *, tracker=None):
+        super().__init__(tracker=tracker)
         self._dependents = set()
         self._source = source
 
@@ -36,10 +35,10 @@ class Dependency:
         implicit mode, the dependency finds the running computation by asking
         the `Tracker`.
         """
-        if not (computation or self._tracker.active):
+        if not (computation or self.tracker.active):
             result = False
         else:
-            computation = computation or self._tracker.current_computation
+            computation = computation or self.tracker.current_computation
             if computation not in self._dependents:
                 self._dependents.add(computation)
                 computation.add_dependency(self)
@@ -69,7 +68,7 @@ class Dependency:
                         'Refusing to invalidate an already'
                         ' stopped computation. This should not happen!')
                 comp.invalidate(self)
-            self._tracker.flusher.require_flush()
+            self.tracker.flusher.require_flush()
 
     @property
     def has_dependents(self):
@@ -138,8 +137,8 @@ class EventDependency(FollowMixin, Dependency,
 
     on_change = signal.Signal()
 
-    def __init__(self, tracker=None, source=None):
-        Dependency.__init__(self, tracker, source)
+    def __init__(self, source=None, *, tracker=None):
+        Dependency.__init__(self, source, tracker=tracker)
         FollowMixin.__init__(self)
 
     def _add_followed(self, followed, ftrans=None):
@@ -211,8 +210,8 @@ class StreamFollower(FollowMixin):
 
 class StreamDependency(StreamFollower, Dependency):
 
-    def __init__(self, tracker=None, source=None):
-        Dependency.__init__(self, tracker, source)
+    def __init__(self, source=None, *, tracker=None):
+        Dependency.__init__(self, source, tracker=tracker)
         StreamFollower.__init__(self)
         self._public_tee = Tee(self._follow_selector)
 

@@ -11,6 +11,7 @@ from functools import partial
 import logging
 import operator
 
+from .base import Tracked
 from .dependency import EventDependency, StopFollowingValue
 from . import get_tracker, Undefined, undefined
 
@@ -21,25 +22,25 @@ logger = logging.getLogger(__name__)
 missing = Undefined()
 
 
-class ReactiveContainerBase:
-    """Base class for reactive containers. It initializes and exports three kind
-    of dependencies to track changes to either immutable values, reactive
+class ReactiveContainerBase(Tracked):
+    """Base class for reactive containers. It initializes and exports three
+    kind of dependencies to track changes to either immutable values, reactive
     values or changes in the structure. It also exposes an `all` member to
     track all of them.
     """
 
     UNDEFINED = undefined
 
-    def __init__(self, equal=None, tracker=None):
-        self._tracker = tracker or get_tracker()
+    def __init__(self, equal=None, *, tracker=None):
+        super().__init__(tracker=tracker)
         self._equal = equal or operator.eq
-        self._all_reactives = EventDependency(self._tracker)
-        self._all_immutables = EventDependency(self._tracker)
-        self._all_values = EventDependency(self._tracker)
+        self._all_reactives = EventDependency(tracker=self._tracker)
+        self._all_immutables = EventDependency(tracker=self._tracker)
+        self._all_values = EventDependency(tracker=self._tracker)
         self._all_values.follow(self._all_reactives, self._all_immutables)
-        self._structure = EventDependency(self._tracker)
-        self._all_structures = EventDependency(self._tracker)
-        self._all = EventDependency(self._tracker)
+        self._structure = EventDependency(tracker=self._tracker)
+        self._all_structures = EventDependency(tracker=self._tracker)
+        self._all = EventDependency(tracker=self._tracker)
         self._all.follow(self._all_structures, self._all_reactives,
                          self._all_immutables)
         self._all_structures.follow(self._structure)
@@ -48,8 +49,8 @@ class ReactiveContainerBase:
         return None
 
     def _follow_reactive(self, rvalue, stop=False, **kwargs):
-        """Follow the events of another reactive container. Or stop following if the
-        `stop` parameter is ``True``.
+        """Follow the events of another reactive container. Or stop following
+        if the `stop` parameter is ``True``.
         """
         assert isinstance(rvalue, ReactiveContainerBase), \
             f"Containers must be reactive, {type(rvalue)} is not"
@@ -101,7 +102,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
 
     def __init__(self, *args, equal=None, tracker=None, **kwargs):
         self._key_dependencies = {}
-        ReactiveContainerBase.__init__(self, equal, tracker)
+        ReactiveContainerBase.__init__(self, equal, tracker=tracker)
         collections.UserDict.__init__(self, *args, **kwargs)
 
     def __contains__(self, key):
@@ -143,7 +144,7 @@ class ReactiveDict(collections.UserDict, ReactiveContainerBase):
         """Analyze changed values and trigger changed events on dependencies."""
         if oldv is missing:
             # add
-            vdep = EventDependency(self._tracker)
+            vdep = EventDependency(tracker=self._tracker)
             self._key_dependencies[key] = vdep
             if self._is_immutable(newv):
                 self._all_immutables.follow(vdep)
@@ -203,7 +204,7 @@ class ReactiveChainMap(collections.ChainMap, ReactiveContainerBase):
     """
 
     def __init__(self, *maps, equal=None, tracker=None):
-        ReactiveContainerBase.__init__(self, equal, tracker)
+        ReactiveContainerBase.__init__(self, equal, tracker=tracker)
         if maps:
             maps = [m if type(m) is ReactiveDict else ReactiveDict(m) for m in
                     maps]
