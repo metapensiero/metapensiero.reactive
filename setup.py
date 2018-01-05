@@ -18,7 +18,7 @@ with open(os.path.join(here, 'CHANGES.rst'), encoding='utf-8') as f:
 with open(os.path.join(here, 'version.txt'), encoding='utf-8') as f:
     VERSION = f.read().strip()
 
-TESTS_REQUIREMENTS = ['pytest', 'pytest-asyncio']
+TESTS_REQUIREMENTS = ['pytest', 'pytest-asyncio', 'pytest-cov']
 
 #TESTS_REQUIREMENTS.append('gevent')
 
@@ -48,17 +48,23 @@ setup(
     packages=['metapensiero.' + package
               for package in find_packages('src/metapensiero')],
     package_dir={'': 'src'},
-    namespace_packages=['metapensiero'],
+    namespace_packages=[
+        'metapensiero'
+    ],
 
-    install_requires=['setuptools',
-                      'metapensiero.signal>=0.7',
-                      'namedlist'],
+    install_requires=[
+        'setuptools',
+        'metapensiero.signal>=0.7',
+        'namedlist'
+    ],
     extras_require={
         'dev': [
             'metapensiero.tool.bump_version',
             'readme_renderer',
-        ]
+        ],
     },
-    setup_requires=['pytest-runner'],
+    setup_requires=[
+        'pytest-runner'
+    ],
     tests_require=TESTS_REQUIREMENTS,
 )

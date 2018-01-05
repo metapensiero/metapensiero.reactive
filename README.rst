@@ -6,6 +6,16 @@
 .. :Copyright: Copyright (C) 2015 Alberto Berti
 ..
 
+.. image:: https://gitlab.com/metapensiero/metapensiero.reactive/badges/master/pipeline.svg
+   :target: https://gitlab.com/metapensiero/metapensiero.reactive/commits/master
+   :align: left
+   :alt: tests status
+
+.. image:: https://gitlab.com/metapensiero/metapensiero.reactive/badges/master/coverage.svg
+   :target: https://gitlab.com/metapensiero/metapensiero.reactive/commits/master
+   :align: left
+   :alt: tests coverage
+
 =======================
  metapensiero.reactive
 =======================
@@ -240,9 +250,3 @@ Testing
 To run the tests you should run the following at the package root::
 
   python setup.py test
-
-Build status
-------------
-
-.. image:: https://travis-ci.org/azazel75/metapensiero.reactive.svg?branch=master
-    :target: https://travis-ci.org/azazel75/metapensiero.reactive
