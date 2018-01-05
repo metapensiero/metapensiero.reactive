@@ -35,7 +35,7 @@ class BaseComputation(Tracked, metaclass=signal.SignalAndHandlerInitMeta):
         self._parent = parent
         """The parent computation"""
 
-    @signal.Signal
+    @signal.signal
     def on_invalidate(self, subscribers, notify):
         if self.tracker is not None:
             self._notify(self.on_invalidate, notify)
@@ -48,7 +48,7 @@ class BaseComputation(Tracked, metaclass=signal.SignalAndHandlerInitMeta):
         else:
             connect(handler)
 
-    @signal.Signal
+    @signal.signal
     def on_stop(self, subscribers, notify):
         if self.tracker is not None:
             self._notify(self.on_invalidate, notify)
