@@ -36,6 +36,11 @@ class BaseComputation(Tracked, metaclass=signal.SignalAndHandlerInitMeta):
         """The parent computation"""
 
     @signal.signal
+    def on_invalidate(self):
+        """Signal notified when the computation is invalidated. It takes no
+        parameters."""
+
+    @on_invalidate.on_notify
     def on_invalidate(self, subscribers, notify):
         if self.tracker is not None:
             self._notify(self.on_invalidate, notify)
@@ -49,6 +54,10 @@ class BaseComputation(Tracked, metaclass=signal.SignalAndHandlerInitMeta):
             connect(handler)
 
     @signal.signal
+    def on_stop(self):
+        "Signal notified when the computation stops. It takes no parameters"
+
+    @on_stop.on_notify
     def on_stop(self, subscribers, notify):
         if self.tracker is not None:
             self._notify(self.on_invalidate, notify)
@@ -290,7 +299,6 @@ class AsyncComputation(Computation):
     used to obtain a trigger and block of code can be executed only after a
     certain condition expressed by the computing function is met.
     """
-
 
     def __init__(self, parent, func, on_error=None, equal=None,
                  initial_value=undefined, *, tracker=None):
